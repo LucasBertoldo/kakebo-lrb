@@ -246,9 +246,20 @@
                         <label class="block text-xs font-bold uppercase mb-2" style="color: var(--texto-mutado)">Categorias Ativas</label>
                         <div id="lista-chips-filtros" class="flex flex-wrap gap-2 max-h-[100px] overflow-y-auto kanban-scrollbar"></div>
                     </div>
-                    <div class="mt-auto pt-2 border-t flex gap-2" style="border-color: var(--borda);">
-                        <input type="text" id="input-nova-categoria" class="text-sm py-2 px-3 min-h-[40px]" placeholder="Nova categoria...">
-                        <button onclick="criarNovaCategoria()" class="btn-primary px-3 text-xs min-h-[40px] rounded-lg shadow-sm">Add</button>
+                    <div class="mt-auto pt-3 border-t flex flex-col gap-2" style="border-color: var(--borda);">
+                        <label class="block text-[10px] font-bold uppercase" style="color: var(--texto-mutado)">Nova Categoria Agrupada</label>
+                        <select id="select-grupo-nova-categoria" class="text-xs min-h-[36px] p-1 bg-transparent border rounded-lg" style="border-color: var(--borda); color: var(--texto-principal);">
+                            <option value="TECNOLOGIA">💻 Infra & TI</option>
+                            <option value="CASA">🏠 Contas de Casa</option>
+                            <option value="MOBILIDADE">🚗 Logística & Veículo</option>
+                            <option value="ESTILO_DE_VIDA">🍿 Estilo de Vida</option>
+                            <option value="INVESTIMENTOS">📈 Investimentos</option>
+                            <option value="OUTROS">📌 Outros</option>
+                        </select>
+                        <div class="flex gap-2">
+                            <input type="text" id="input-nova-categoria" class="text-sm py-1 px-3 min-h-[38px] w-full border rounded-lg" style="background-color: transparent; border-color: var(--borda);" placeholder="Nome da tag...">
+                            <button onclick="criarNovaCategoria()" class="btn-primary px-3 text-xs min-h-[38px] rounded-lg shadow-sm">Add</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -267,6 +278,7 @@
                     <button onclick="abrirModalLancamento()" class="btn-primary px-4 py-2 text-sm shadow-sm">➕ Nova Transação</button>
                     <button onclick="abrirModalImportador()" class="btn-secondary px-4 py-2 text-sm shadow-sm">📥 Importar OFX/PDF</button>
                     <button onclick="adicionarColunaDespesa()" class="btn-secondary px-4 py-2 text-sm shadow-sm">🏦 Nova Conta</button>
+                    <button onclick="zerarBaseDeDados()" class="bg-red-500/10 text-red-500 border border-red-500/20 px-4 py-2 text-sm rounded-lg shadow-sm font-bold hover:bg-red-500/20 transition">🧹 Zerar Base</button>
                 </div>
             </div>
         </div>
@@ -336,7 +348,7 @@
                     <span>🏷️ Selecionar Tags/Categorias</span>
                     <span id="md-txt-qtd-categorias" class="font-bold px-2 py-0.5 rounded-full text-[10px]" style="background-color: var(--cor-acc); color: var(--cor-acc-txt);">1</span>
                 </button>
-                <div id="md-container-chips" class="flex flex-wrap gap-2 mt-3 p-3 rounded-xl hidden max-h-[150px] overflow-y-auto kanban-scrollbar" style="background-color: var(--badge-bg);"></div>
+                <div id="md-container-chips" class="flex flex-col gap-2 mt-3 p-3 rounded-xl hidden max-h-[220px] overflow-y-auto kanban-scrollbar" style="background-color: var(--badge-bg);"></div>
             </div>
 
             <div class="flex justify-end gap-3 pt-4 mt-2 border-t" style="border-color: var(--borda);">
@@ -378,10 +390,7 @@ window.onerror = function(message, source, lineno, colno, error) {
 };
 
 // ==============================================================================
-// CONFIGURAÇÃO SUPABASE
-// ==============================================================================
-// ==============================================================================
-// CONFIGURAÇÃO SUPABASE - INJEÇÃO VIA VERCEL BUILD
+// CONFIGURAÇÃO SUPABASE - INJEÇÃO VIA VERCEL BUILD / NETLIFY
 // ==============================================================================
 const SUPABASE_URL = 'https://cdtedxswqzgfdflyadgb.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_2aNjRCxPpSGV1xFJxqq22Q_fp4jtEZF';
@@ -447,12 +456,11 @@ function obterCorTextoContraste(hexcolor) {
     return (yiq >= 135) ? '#1e293b' : '#ffffff';
 }
 
-// Inicialização com Fallbacks de Memória Dinâmica
+// ==============================================================================
+// MAPEAMENTO INTELIGENTE DE CATEGORIAS AGRUPADAS
+// ==============================================================================
 let colunasAtivas = ["ENTRADAS"];
-let categorias = ["Mercado", "Combustível", "Casa", "Streaming", "Lazer", "Outros"];
-let filtrosCategoriasAtivos = [...categorias];
 let membrosFamilia = ["Pessoal"];
-
 let membroFiltroAtual = "TODOS";
 let temaAtual = localStorage.getItem('k_tema_app') || 'LIGHT';
 let valoresVisiveis = localStorage.getItem('k_valores_visiveis') !== 'false';
@@ -460,15 +468,34 @@ let valoresVisiveis = localStorage.getItem('k_valores_visiveis') !== 'false';
 let lancamentos = [];
 let usuarioAtual = null;
 let modoCadastro = false;
-
 let chartPizzaInstance = null, chartLinhaInstance = null;
 let modalCategoriasSelecionadas = []; let editandoId = null;
 
+let categorias = [
+    "Eletrônicos & Hardware", "Assinaturas & Softwares", "Oficina & Manutenção",
+    "Moradia & Contas", "Mercado & Essenciais", "Saúde & Bem-estar",
+    "Transporte & Veículo", "Alimentação Fora", "Lazer & Entretenimento",
+    "Compras Gerais", "Reserva & Investimentos", "Outros"
+];
+let filtrosCategoriasAtivos = [...categorias];
+
+let mapeamentoCategorias = {
+    "TECNOLOGIA": ["Eletrônicos & Hardware", "Assinaturas & Softwares", "Oficina & Manutenção"],
+    "CASA": ["Moradia & Contas", "Mercado & Essenciais", "Saúde & Bem-estar"],
+    "MOBILIDADE": ["Transporte & Veículo"],
+    "ESTILO_DE_VIDA": ["Alimentação Fora", "Lazer & Entretenimento", "Compras Gerais"],
+    "INVESTIMENTOS": ["Reserva & Investimentos"],
+    "OUTROS": ["Outros"]
+};
+
+// Dicionário atualizado para auto-identificação
 const DICIONARIO_CATEGORIAS = {
-    "Streaming": ["netflix", "spotify", "disney", "hbo", "prime", "youtube"],
-    "Combustível": ["posto", "shell", "petrobras", "ipiranga", "gasolina"],
-    "Mercado": ["supermerkado", "atacadao", "carrefour", "assai", "mercado"],
-    "Lazer": ["restaurante", "bar", "cinema", "ifood", "uber"]
+    "Assinaturas & Softwares": ["netflix", "spotify", "disney", "hbo", "prime", "youtube", "cloud", "aws", "hostinger", "github", "chatgpt"],
+    "Eletrônicos & Hardware": ["kabum", "pichau", "terabyte", "aliexpress", "mercado livre", "amazon", "hardware", "placa", "memoria", "cooler"],
+    "Transporte & Veículo": ["posto", "shell", "petrobras", "ipiranga", "gasolina", "uber", "99", "ipva", "oficina carro", "oficina moto"],
+    "Mercado & Essenciais": ["supermerkado", "atacadao", "carrefour", "assai", "mercado", "padaria", "farmacia", "drogasil", "pague menos"],
+    "Alimentação Fora": ["restaurante", "bar", "cinema", "ifood", "burger", "mcdonalds", "pizza"],
+    "Moradia & Contas": ["celg", "equatorial", "saneago", "agua", "energia", "luz", "condominio", "aluguel", "vivo", "claro", "tim", "internet"]
 };
 
 const coresGraficos = {
@@ -577,18 +604,16 @@ async function carregarConfiguracoesEDadosDoSupabase() {
     
     UI.showToast("Sincronizando painel...", "success");
 
-    // 1. Busca preferências estruturais de carteira e tags
     let { data: config, error: configError } = await supabaseClient
         .from('usuario_configuracoes')
         .select('*')
         .maybeSingle();
 
-    // Se for usuário novo, injeta a linha inicial com painel limpo (Apenas Entradas)
     if (!config && (!configError || configError.code === 'PGRST116')) {
         const defaultConfig = {
             user_id: usuarioAtual.id,
             colunas_ativas: ["ENTRADAS"],
-            categorias: ["Mercado", "Combustível", "Casa", "Streaming", "Lazer", "Outros"],
+            categorias: categorias,
             membros: ["Pessoal"]
         };
         const { data: newConfig, error: insertError } = await supabaseClient
@@ -602,15 +627,25 @@ async function carregarConfiguracoesEDadosDoSupabase() {
 
     if (config) {
         colunasAtivas = config.colunas_ativas || ["ENTRADAS"];
-        categorias = config.categorias || [];
+        if (config.categorias && config.categorias.length > 0) {
+            categorias = config.categorias;
+            filtrosCategoriasAtivos = [...categorias];
+            
+            // Reconciliação inteligente: Joga tags legadas ou estranhas na pasta 'OUTROS'
+            categorias.forEach(c => {
+                let found = false;
+                for (const g in mapeamentoCategorias) {
+                    if (mapeamentoCategorias[g].includes(c)) { found = true; break; }
+                }
+                if (!found) mapeamentoCategorias["OUTROS"].push(c);
+            });
+        }
         membrosFamilia = config.membros || ["Pessoal"];
-        filtrosCategoriasAtivos = [...categorias];
     }
 
     atualizarSeletoresMembros(); 
     renderizarFiltrosChips();
 
-    // 2. Busca lançamentos financeiros
     const { data: transacoes, error: transError } = await supabaseClient
         .from('lancamentos')
         .select('*')
@@ -689,12 +724,21 @@ function toggleFiltro(cat) {
 
 async function criarNovaCategoria() {
     const val = UI.escapeHTML(document.getElementById('input-nova-categoria').value.trim());
+    const grupo = document.getElementById('select-grupo-nova-categoria').value;
+    
     if(val && !categorias.includes(val)) { 
-        categorias.push(val); filtrosCategoriasAtivos.push(val);
+        categorias.push(val); 
+        filtrosCategoriasAtivos.push(val);
+        
+        // Atrela a tag nova ao grupo selecionado
+        if (!mapeamentoCategorias[grupo]) mapeamentoCategorias[grupo] = [];
+        mapeamentoCategorias[grupo].push(val);
+
         document.getElementById('input-nova-categoria').value = ''; 
         renderizarFiltrosChips(); 
         await salvarConfiguracoesNaNuvem();
         renderizarPainelGeral(); 
+        UI.showToast(`Tag vinculada ao grupo: ${grupo}`);
     }
 }
 
@@ -742,7 +786,7 @@ function abrirModalLancamento(id = null) {
         editandoId = null; tituloTxt.innerText = "➕ Nova Transação";
         document.getElementById('md-desc').value = ''; document.getElementById('md-nota').value = ''; document.getElementById('md-valor').value = ''; 
         document.getElementById('md-tipo').value = 'SAÍDA'; alternarOrigemDestinoModal('SAÍDA'); 
-        document.getElementById('md-membro').value = membrosFamilia[0]; modalCategoriasSelecionadas = ["Outros"];
+        document.getElementById('md-membro').value = membrosFamilia[0] || "Pessoal"; modalCategoriasSelecionadas = ["Outros"];
         document.getElementById('md-data').value = new Date().toISOString().split('T')[0];
     }
     renderizarChipsModal(); document.getElementById('modal-lancamento').classList.remove('hidden');
@@ -752,22 +796,50 @@ function fecharModalLancamento() { document.getElementById('modal-lancamento').c
 function alternarOrigemDestinoModal(t) { document.getElementById('container-selecao-coluna').style.display = t === 'ENTRADA' ? 'none' : 'block'; }
 function toggleContainerCategoriasModal() { document.getElementById('md-container-chips').classList.toggle('hidden'); }
 
+// Nova renderização de chips dividida por blocos
 function renderizarChipsModal() {
     const cont = document.getElementById('md-container-chips'); cont.innerHTML = '';
-    categorias.forEach(c => {
-        const atv = modalCategoriasSelecionadas.includes(c); const b = document.createElement('button'); b.type = "button";
-        b.className = `px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all`;
-        b.style.backgroundColor = atv ? 'var(--cor-acc)' : 'transparent';
-        b.style.color = atv ? 'var(--cor-acc-txt)' : 'var(--texto-mutado)';
-        b.style.borderColor = atv ? 'var(--cor-acc)' : 'var(--borda)';
-        b.innerText = c; 
-        b.onclick = () => { 
-            if(modalCategoriasSelecionadas.includes(c)) modalCategoriasSelecionadas = modalCategoriasSelecionadas.filter(item => item !== c); 
-            else modalCategoriasSelecionadas.push(c); 
-            renderizarChipsModal(); 
-        }; 
-        cont.appendChild(b);
-    });
+    
+    const titulosGrupos = {
+        "TECNOLOGIA": "💻 Infraestrutura & TI",
+        "CASA": "🏠 Contas de Casa",
+        "MOBILIDADE": "🚗 Logística & Mobilidade",
+        "ESTILO_DE_VIDA": "🍿 Estilo de Vida",
+        "INVESTIMENTOS": "📈 Investimentos",
+        "OUTROS": "📌 Outros"
+    };
+
+    for (const [chaveGrupo, itensTags] of Object.entries(mapeamentoCategorias)) {
+        // Exibe apenas as tags que estão ativas na master list
+        const tagsAtivasNoGrupo = itensTags.filter(cat => categorias.includes(cat));
+        if(tagsAtivasNoGrupo.length === 0) continue;
+
+        const blocoGrupoHtml = document.createElement('div');
+        blocoGrupoHtml.className = "w-full mb-3 border-b pb-2 last:border-none";
+        blocoGrupoHtml.style.borderColor = "var(--borda)";
+        blocoGrupoHtml.innerHTML = `<h5 class="text-[10px] uppercase font-extrabold tracking-wider mb-2 opacity-80" style="color: var(--cor-acc);">${titulosGrupos[chaveGrupo] || chaveGrupo}</h5>`;
+
+        const wrapperChips = document.createElement('div');
+        wrapperChips.className = "flex flex-wrap gap-2";
+
+        tagsAtivasNoGrupo.forEach(c => {
+            const atv = modalCategoriasSelecionadas.includes(c); const b = document.createElement('button'); b.type = "button";
+            b.className = `px-3 py-1.5 text-[11px] font-semibold rounded-lg border transition-all`;
+            b.style.backgroundColor = atv ? 'var(--cor-acc)' : 'transparent';
+            b.style.color = atv ? 'var(--cor-acc-txt)' : 'var(--texto-mutado)';
+            b.style.borderColor = atv ? 'var(--cor-acc)' : 'var(--borda)';
+            b.innerText = c; 
+            b.onclick = () => { 
+                if(modalCategoriasSelecionadas.includes(c)) modalCategoriasSelecionadas = modalCategoriasSelecionadas.filter(item => item !== c); 
+                else modalCategoriasSelecionadas.push(c); 
+                renderizarChipsModal(); 
+            }; 
+            wrapperChips.appendChild(b);
+        });
+        
+        blocoGrupoHtml.appendChild(wrapperChips);
+        cont.appendChild(blocoGrupoHtml);
+    }
     document.getElementById('md-txt-qtd-categorias').innerText = modalCategoriasSelecionadas.length;
 }
 
@@ -790,7 +862,6 @@ async function salvarLancamentoModal() {
     
     UI.showToast("Salvando na nuvem...", "success");
 
-    // Adiciona a coluna criada manualmente à lista se ela não existir
     if(tipo === 'SAÍDA' && !colunasAtivas.includes(coluna)) {
         colunasAtivas.push(coluna);
         await salvarConfiguracoesNaNuvem();
@@ -962,7 +1033,7 @@ function processarMotorOFX(texto, colDestino) {
             let cat = "Outros";
             for (const [k, p] of Object.entries(DICIONARIO_CATEGORIAS)) if (p.some(pal => desc.toLowerCase().includes(pal))) cat = k;
             
-            novosLancamentos.push({ user_id: usuarioAtual.id, descricao: UI.escapeHTML(desc), nota: "", valor: val, tipo, coluna: tipo === "ENTRADA" ? "ENTRADAS" : colDestino, categorias: [cat], membro: membrosFamilia[0], mes: mesStr, data: dataStr });
+            novosLancamentos.push({ user_id: usuarioAtual.id, descricao: UI.escapeHTML(desc), nota: "", valor: val, tipo, coluna: tipo === "ENTRADA" ? "ENTRADAS" : colDestino, categorias: [cat], membro: membrosFamilia.length > 0 ? membrosFamilia[0] : "Pessoal", mes: mesStr, data: dataStr });
         }
     } return novosLancamentos;
 }
@@ -976,11 +1047,9 @@ function processarTextoRegex(texto, colDestino) {
     while((m = regex.exec(texto.replace(/\s+/g, ' '))) !== null) {
         let desc = m[2].trim();
         
-        // 1. Limpeza agressiva e conversão segura do valor
         let valorLimpo = m[3].replace(/\./g, '').replace(',', '.');
         let val = parseFloat(valorLimpo); 
         
-        // 2. Bloqueio absoluto contra NaN, vazios ou descrições curtas
         if(Number.isNaN(val) || !Number.isFinite(val) || val === 0 || desc.length < 3) continue;
         
         let [dia, mes] = m[1].split('/');
@@ -990,7 +1059,6 @@ function processarTextoRegex(texto, colDestino) {
         let tipo = val < 0 ? "ENTRADA" : "SAÍDA"; 
         val = Math.abs(val); 
         
-        // 3. Checagem final de segurança antes de empurrar para o array
         if (Number.isNaN(val)) continue;
 
         let cat = "Outros";
@@ -1002,10 +1070,10 @@ function processarTextoRegex(texto, colDestino) {
             user_id: usuarioAtual.id, 
             descricao: UI.escapeHTML(desc), 
             nota: "", 
-            valor: Number(val.toFixed(2)), // Garante que é um número com 2 casas decimais
+            valor: Number(val.toFixed(2)), 
             tipo: tipo, 
             coluna: tipo === "ENTRADA" ? "ENTRADAS" : colDestino, 
-            categorias: [cat], // CORRIGIDO: Estava 'categories' no original!
+            categorias: [cat], 
             membro: (typeof membrosFamilia !== 'undefined' && membrosFamilia.length > 0) ? membrosFamilia[0] : "Pessoal", 
             mes: mesStr, 
             data: dataStr 
@@ -1211,13 +1279,65 @@ function processarGraficos(dados) {
                 datalabels: { 
                     align: 'top', 
                     color: corTextoLabel,
-                    font: { weight: 'bold', size: 11 }, 
+                    fontis: { weight: 'bold', size: 11 }, 
                     formatter: v => valoresVisiveis ? 'R$ ' + v.toLocaleString('pt-BR') : 'R$ •••••' 
                 } 
             } 
         } 
     });
 }
-</script>
-</body>
-</html>
+// --- COLE ESTAS FUNÇÕES NO FINAL DO SEU SCRIPT ---
+
+async function zerarBaseDeDados() {
+    if(!confirm("⚠️ ATENÇÃO: Isso apagará TODOS os seus lançamentos da nuvem. Tem certeza?")) return;
+
+    UI.showToast("Limpando base de dados...", "success");
+    
+    const { error } = await supabaseClient
+        .from('lancamentos')
+        .delete()
+        .eq('user_id', usuarioAtual.id);
+
+    if (error) {
+        UI.showToast("Erro ao limpar dados", "error");
+    } else {
+        lancamentos = []; 
+        renderizarPainelGeral(); 
+        UI.showToast("Base de dados limpa!");
+    }
+}
+
+// Substitua a sua função removerLancamento antiga por esta:
+async function removerLancamento(id) { 
+    if(confirm("Deseja apagar esta transação do banco de dados?")) { 
+        UI.showToast("Apagando da nuvem...", "success");
+        
+        const { error } = await supabaseClient.from('lancamentos').delete().eq('id', id);
+        
+        if (error) {
+            UI.showToast("Erro ao apagar", "error");
+        } else {
+            // Reatividade: remove do array local e atualiza a interface imediatamente
+            lancamentos = lancamentos.filter(l => l.id !== id);
+            renderizarPainelGeral(); 
+            UI.showToast("Transação apagada!");
+        }
+    } 
+}
+async function removerColuna(col) { 
+    if(confirm(`Deseja realmente excluir a conta/fatura "${col}"?`)) { 
+        // 1. Apaga os lançamentos daquela coluna específica na nuvem
+        await supabaseClient.from('lancamentos').delete().eq('coluna', col);
+        
+        // 2. Remove da lista de colunas ativas
+        colunasAtivas = colunasAtivas.filter(c => c !== col); 
+        await salvarConfiguracoesNaNuvem();
+        
+        // 3. Atualiza tudo
+        await carregarConfiguracoesEDadosDoSupabase();
+        UI.showToast("Conta e lançamentos removidos.", "error"); 
+    } 
+}
+</script>;
+</body>;
+</html>;
