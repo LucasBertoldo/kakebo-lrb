@@ -999,26 +999,45 @@ async function processarImportacao(conteudo, nomeArq, funcaoExtrair) {
 
 function processarMotorOFX(texto, colDestino) {
     let novosLancamentos = [];
+    // Divide pelos blocos de transação
     const blocosTransacionais = texto.split(/<STMTTRN>/i);
+    
     for (let i = 1; i < blocosTransacionais.length; i++) {
         const bloco = blocosTransacionais[i];
-        const valorMatch = bloco.match(/<TRNAMT>([\d.-]+)/i); let memoMatch = bloco.match(/<MEMO>([^<]+)/i) || bloco.match(/<NAME>([^<]+)/i);
-        
+        const valorMatch = bloco.match(/<TRNAMT>([\d.-]+)/i); 
+        let memoMatch = bloco.match(/<MEMO>([^<]+)/i) || bloco.match(/<NAME>([^<]+)/i);
         const dataMatch = bloco.match(/<DTPOSTED>(\d{4})(\d{2})(\d{2})/i);
-        let dataStr = new Date().toISOString().split('T')[0];
-        if (dataMatch) dataStr = `${dataMatch[1]}-${dataMatch[2]}-${dataMatch[3]}`;
-        let mesStr = dataStr.substring(0, 7);
         
-        if (valorMatch && memoMatch) {
+        if (valorMatch) {
             let val = parseFloat(valorMatch[1]);
-            let desc = memoMatch[1].trim(); if (isNaN(val) || val === 0) continue; let tipo = "SAÍDA";
-            if (val < 0) { tipo = "SAÍDA"; val = Math.abs(val); } else { tipo = "ENTRADA"; }
-            let cat = "Outros";
-            for (const [k, p] of Object.entries(DICIONARIO_CATEGORIAS)) if (p.some(pal => desc.toLowerCase().includes(pal))) cat = k;
+            let desc = memoMatch ? memoMatch[1].trim() : "Transação Sem Nome";
+            let dataStr = dataMatch ? `${dataMatch[1]}-${dataMatch[2]}-${dataMatch[3]}` : new Date().toISOString().split('T')[0];
             
-            novosLancamentos.push({ user_id: usuarioAtual.id, descricao: UI.escapeHTML(desc), nota: "", valor: val, tipo, coluna: tipo === "ENTRADA" ? "ENTRADAS" : colDestino, categorias: [cat], membro: membrosFamilia.length > 0 ? membrosFamilia[0] : "Pessoal", mes: mesStr, data: dataStr });
+            // Lógica: se for positivo, é Entrada. Se for negativo, é Saída.
+            let tipo = (val >= 0) ? "ENTRADA" : "SAÍDA";
+            let valorAbsoluto = Math.abs(val);
+            
+            // Força a categoria para "Outros" se não encontrar nada, em vez de pular
+            let cat = ["Outros"];
+            for (const [k, p] of Object.entries(DICIONARIO_CATEGORIAS)) {
+                if (p.some(pal => desc.toLowerCase().includes(pal))) cat = [k];
+            }
+            
+            novosLancamentos.push({ 
+                user_id: usuarioAtual.id, 
+                descricao: UI.escapeHTML(desc), 
+                nota: "", 
+                valor: valorAbsoluto, 
+                tipo: tipo, 
+                coluna: (tipo === "ENTRADA") ? "ENTRADAS" : colDestino, 
+                categorias: cat, 
+                membro: document.getElementById('imp-membro').value || membrosFamilia[0], 
+                mes: dataStr.substring(0, 7), 
+                data: dataStr 
+            });
         }
-    } return novosLancamentos;
+    } 
+    return novosLancamentos;
 }
 
 function processarTextoRegex(texto, colDestino) {
@@ -1102,9 +1121,13 @@ function renderizarKanban(dados) {
     const row = document.getElementById('kanban-board-row'); row.innerHTML = '';
     
     colunasAtivas.forEach((col, idx) => {
-        let bConfig = null; for (const k in BANCOS_BRANDING) { if (BANCOS_BRANDING[k].nome.toUpperCase() === col.toUpperCase()) bConfig = BANCOS_BRANDING[k]; }
-        const possuiBranding = !!bConfig; const corBanco = possuiBranding ? bConfig.cor : 'transparent'; const bgColuna = possuiBranding ? `${corBanco}14` : 'var(--card-bg)'; const corLinhaTop = possuiBranding ? corBanco : 'var(--borda)'; const iconeExibicao = possuiBranding ? `${bConfig.icon} ` : (col === "ENTRADAS" ? '🟢 ' : '🏦 ');
-        
+// Nova versão mais robusta
+let bConfig = BANCOS_BRANDING[col.toUpperCase()];
+const possuiBranding = !!bConfig;
+const corBanco = possuiBranding ? bConfig.cor : '#64748b'; // Cor cinza padrão se não tiver branding
+const bgColuna = possuiBranding ? `${corBanco}14` : 'var(--card-bg)';
+const corLinhaTop = corBanco;
+
         const b = document.createElement('div');
         b.className = "mobile-card min-w-[280px] w-72 flex flex-col shrink-0 overflow-hidden transition-all duration-300";
         b.style.backgroundColor = bgColuna; b.style.borderColor = possuiBranding ? `${corBanco}35` : 'var(--borda)';
