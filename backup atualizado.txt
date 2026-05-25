@@ -367,11 +367,6 @@
                 <label class="block text-xs font-bold mb-1" style="color: var(--texto-mutado)">Conta Destino</label>
                 <select id="imp-coluna"></select>
             </div>
-            <div>
-                <label class="block text-xs font-bold mb-1" style="color: var(--texto-mutado)">Membro Responsável</label>
-                 <select id="imp-membro"></select>
-             <div class="mt-2 text-[10px] text-blue-400 cursor-pointer" onclick="criarNovoMembroViaModal()">+ Criar novo membro</div>
-            </div>
             <div class="p-6 border-2 border-dashed rounded-xl text-center flex flex-col items-center justify-center gap-3 cursor-pointer transition relative" style="border-color: var(--borda); background-color: var(--badge-bg);">
                 <input type="file" id="imp-arquivo" onchange="detectarEProcessarArquivo(this)" class="opacity-0 absolute inset-0 w-full h-full cursor-pointer" accept=".ofx,.pdf,.txt,.csv">
                 <span class="text-3xl">🤖</span>
@@ -948,14 +943,10 @@ function abrirModalImportador() {
     const colSelect = document.getElementById('imp-coluna'); 
     colSelect.innerHTML = '<option value="AUTO">🤖 Auto-Detectar Banco</option>'; 
     colunasAtivas.forEach(c => { 
-        if(c !== "ENTRADAS") colSelect.innerHTML += `<option value="${c}">${c}</option>`; 
+        if(c !== "ENTRADAS") {
+            colSelect.innerHTML += `<option value="${c}">${c}</option>`; 
+        }
     }); 
-    
-    // NOVO: Preencher seletor de membros
-    const memSelect = document.getElementById('imp-membro');
-    memSelect.innerHTML = '';
-    membrosFamilia.forEach(m => memSelect.innerHTML += `<option value="${m}">${m}</option>`);
-
     document.getElementById('imp-arquivo').value = ''; 
     document.getElementById('modal-importador').classList.remove('hidden'); 
 }
@@ -980,32 +971,46 @@ function detectarEProcessarArquivo(input) {
 
 async function processarImportacao(conteudo, nomeArq, funcaoExtrair) {
     let nomeColunaFinal = document.getElementById('imp-coluna').value;
-    let membroSelecionado = document.getElementById('imp-membro').value; // Pegando o membro do novo select
     let configuracaoAlterada = false;
     
-    // ... (mantenha sua lógica de autodetecção de banco aqui) ...
+    if (nomeColunaFinal === "AUTO") {
+        let bancoConfig = detectarBancoArquivo(conteudo, nomeArq);
+        if (bancoConfig) { 
+            nomeColunaFinal = bancoConfig.nome.toUpperCase(); 
+            if (!colunasAtivas.includes(nomeColunaFinal)) { 
+                colunasAtivas.push(nomeColunaFinal); 
+                configuracaoAlterada = true;
+                UI.showToast(`Conta autodetectada!`); 
+            } 
+        } else {
+            nomeColunaFinal = colunasAtivas.find(c => c !== "ENTRADAS") || "OUTROS";
+            if (!colunasAtivas.includes(nomeColunaFinal)) {
+                colunasAtivas.push(nomeColunaFinal);
+                configuracaoAlterada = true;
+            }
+            UI.showToast(`Banco não identificado. Usando ${nomeColunaFinal}.`);
+        }
+    }
+
+    if(configuracaoAlterada) {
+        await salvarConfiguracoesNaNuvem();
+    }
 
     const arrayNovasTransacoes = funcaoExtrair(conteudo, nomeColunaFinal);
     
-    // NOVO: Adiciona o membro em cada transação antes de salvar
-    const transacoesComMembro = arrayNovasTransacoes.map(t => ({
-        ...t,
-        membro: membroSelecionado
-    }));
-    
-    if(transacoesComMembro.length > 0) { 
-        UI.showToast(`Enviando ${transacoesComMembro.length} transações...`, "success");
-        const { error } = await supabaseClient.from('lancamentos').insert(transacoesComMembro);
+    if(arrayNovasTransacoes.length > 0) { 
+        UI.showToast(`Enviando ${arrayNovasTransacoes.length} transações para a nuvem...`, "success");
+        const { error } = await supabaseClient.from('lancamentos').insert(arrayNovasTransacoes);
         
         if (error) {
             UI.showToast("Erro ao importar para nuvem.", "error");
         } else {
             fecharModalImportador(); 
             await carregarConfiguracoesEDadosDoSupabase();
-            UI.showToast("Importado com sucesso!");
+            UI.showToast(`${arrayNovasTransacoes.length} transações importadas com sucesso!`);
         }
     } else { 
-        UI.showToast("Nenhuma transação válida.", "error"); 
+        UI.showToast("Nenhuma transação válida lida.", "error"); 
     }
 }
 
@@ -1332,14 +1337,6 @@ async function removerColuna(col) {
         await carregarConfiguracoesEDadosDoSupabase();
         UI.showToast("Conta e lançamentos removidos.", "error"); 
     } 
-}
-function criarNovoMembroViaModal() {
-    const nome = prompt("Nome do novo membro:");
-    if(nome && !membrosFamilia.includes(nome)) {
-        membrosFamilia.push(nome);
-        salvarConfiguracoesNaNuvem();
-        abrirModalImportador(); // Recarrega o modal para exibir o novo membro na lista
-    }
 }
 </script>;
 </body>;
