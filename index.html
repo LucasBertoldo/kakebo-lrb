@@ -947,11 +947,9 @@ async function ajustarOrdemColuna(col, direcao) {
 function abrirModalImportador() { 
     const colSelect = document.getElementById('imp-coluna'); 
     colSelect.innerHTML = '<option value="AUTO">🤖 Auto-Detectar Banco</option>'; 
-    colunasAtivas.forEach(c => { 
-        if(c !== "ENTRADAS") colSelect.innerHTML += `<option value="${c}">${c}</option>`; 
-    }); 
+    colunasAtivas.forEach(c => { if(c !== "ENTRADAS") colSelect.innerHTML += `<option value="${c}">${c}</option>`; }); 
     
-    // NOVO: Preencher seletor de membros
+    // Adicione esta parte para popular os membros:
     const memSelect = document.getElementById('imp-membro');
     memSelect.innerHTML = '';
     membrosFamilia.forEach(m => memSelect.innerHTML += `<option value="${m}">${m}</option>`);
@@ -980,32 +978,22 @@ function detectarEProcessarArquivo(input) {
 
 async function processarImportacao(conteudo, nomeArq, funcaoExtrair) {
     let nomeColunaFinal = document.getElementById('imp-coluna').value;
-    let membroSelecionado = document.getElementById('imp-membro').value; // Pegando o membro do novo select
-    let configuracaoAlterada = false;
+    let membroSelecionado = document.getElementById('imp-membro').value; // Pega o que você escolheu no select
     
-    // ... (mantenha sua lógica de autodetecção de banco aqui) ...
+    // ... (mantenha a lógica de detecção de banco que você já tem) ...
 
     const arrayNovasTransacoes = funcaoExtrair(conteudo, nomeColunaFinal);
     
-    // NOVO: Adiciona o membro em cada transação antes de salvar
+    // Adiciona o membro em cada item antes de enviar ao Supabase
     const transacoesComMembro = arrayNovasTransacoes.map(t => ({
         ...t,
-        membro: membroSelecionado
+        membro: membroSelecionado 
     }));
     
     if(transacoesComMembro.length > 0) { 
         UI.showToast(`Enviando ${transacoesComMembro.length} transações...`, "success");
         const { error } = await supabaseClient.from('lancamentos').insert(transacoesComMembro);
-        
-        if (error) {
-            UI.showToast("Erro ao importar para nuvem.", "error");
-        } else {
-            fecharModalImportador(); 
-            await carregarConfiguracoesEDadosDoSupabase();
-            UI.showToast("Importado com sucesso!");
-        }
-    } else { 
-        UI.showToast("Nenhuma transação válida.", "error"); 
+        // ... (resto da lógica)
     }
 }
 
