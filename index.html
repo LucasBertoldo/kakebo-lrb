@@ -380,8 +380,8 @@ window.onerror = function(message, source, lineno, colno, error) {
 // ==============================================================================
 // CONFIGURAÇÃO SUPABASE
 // ==============================================================================
-const SUPABASE_URL = `https://cdtedxswqzgfdflyadgb.supabase.co`; 
-const SUPABASE_ANON_KEY = `sb_publishable_2aNjRCxPpSGV1xFJxqq22Q_fp4jtEZF`;
+const SUPABASE_URL = 'process.env.SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'process.env.SUPABASE_ANON_KEY';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
