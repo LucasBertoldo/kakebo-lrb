@@ -978,22 +978,32 @@ function detectarEProcessarArquivo(input) {
 
 async function processarImportacao(conteudo, nomeArq, funcaoExtrair) {
     let nomeColunaFinal = document.getElementById('imp-coluna').value;
-    let membroSelecionado = document.getElementById('imp-membro').value; // Pega o que você escolheu no select
+    let membroSelecionado = document.getElementById('imp-membro').value;
     
-    // ... (mantenha a lógica de detecção de banco que você já tem) ...
+    // ... (lógica de detecção de banco) ...
 
     const arrayNovasTransacoes = funcaoExtrair(conteudo, nomeColunaFinal);
     
-    // Adiciona o membro em cada item antes de enviar ao Supabase
+    // REPARO: Garantir que a coluna da transação exista no seu array de colunas ativas
+    if (!colunasAtivas.includes(nomeColunaFinal) && nomeColunaFinal !== "ENTRADAS") {
+        colunasAtivas.push(nomeColunaFinal);
+        await salvarConfiguracoesNaNuvem(); // Salva a nova conta no Supabase
+    }
+
     const transacoesComMembro = arrayNovasTransacoes.map(t => ({
         ...t,
-        membro: membroSelecionado 
+        membro: membroSelecionado,
+        coluna: nomeColunaFinal // Força a coluna correta aqui
     }));
     
     if(transacoesComMembro.length > 0) { 
-        UI.showToast(`Enviando ${transacoesComMembro.length} transações...`, "success");
         const { error } = await supabaseClient.from('lancamentos').insert(transacoesComMembro);
-        // ... (resto da lógica)
+        
+        if (!error) {
+            fecharModalImportador();
+            await carregarConfiguracoesEDadosDoSupabase(); // Recarrega colunas e lançamentos
+            UI.showToast("Importado com sucesso!");
+        }
     }
 }
 
