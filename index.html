@@ -383,8 +383,8 @@ window.onerror = function(message, source, lineno, colno, error) {
 // ==============================================================================
 // CONFIGURAÇÃO SUPABASE - INJEÇÃO VIA VERCEL BUILD
 // ==============================================================================
-const SUPABASE_URL = `VERCEL_REPLACE_SUPABASE_URL`; 
-const SUPABASE_ANON_KEY = `VERCEL_REPLACE_SUPABASE_ANON_KEY`;
+const SUPABASE_URL = 'https://cdtedxswqzgfdflyadgb.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_2aNjRCxPpSGV1xFJxqq22Q_fp4jtEZF';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
