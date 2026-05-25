@@ -380,8 +380,11 @@ window.onerror = function(message, source, lineno, colno, error) {
 // ==============================================================================
 // CONFIGURAÇÃO SUPABASE
 // ==============================================================================
-const SUPABASE_URL = 'process.env.SUPABASE_URL';
-const SUPABASE_ANON_KEY = 'process.env.SUPABASE_ANON_KEY';
+// ==============================================================================
+// CONFIGURAÇÃO SUPABASE - INJEÇÃO VIA VERCEL BUILD
+// ==============================================================================
+const SUPABASE_URL = `VERCEL_REPLACE_SUPABASE_URL`; 
+const SUPABASE_ANON_KEY = `VERCEL_REPLACE_SUPABASE_ANON_KEY`;
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
