@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="LIGHT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" id="meta-theme-color" content="#eceef1">
+    
+    <title>Kakebo - Distribuído por LRB</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght=400;500;600;700;800&display=swap');
+        
+        /* ==========================================================================
+           PALETA DE CORES CORPORATIVA - LRB INFORMÁTICA (PRETO & NEON)
+           ========================================================================== */
+        :root, [data-theme="LIGHT"] {
+            --bg-principal: #eceef1;       /* Fundo grafite bem claro, sutil e fosco */
+            --card-bg: #ffffff;            /* Blocos brancos saltando com contraste */
+            --borda: #d1d5db;              /* Bordas suaves */
+            --texto-principal: #111827;    /* Texto principal escuro e legível */
+            --texto-mutado: #4b5563;       /* Texto secundário cinza equilibrado */
+            --header-bg: #ffffff;
+            --cor-primaria: #10b981;       /* Verde vivo para ganhos no modo claro */
+            --cor-acc: #00b4d8;            /* Ciano institucional adaptado */
+            --cor-acc-txt: #ffffff;        /* Texto branco sobre botão ciano */
+            --shadow-cards: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+            --badge-bg: #f3f4f6;
+        }
+
+        [data-theme="DARK"] {
+            --bg-principal: #0b0c0e;       /* Fundo grafite ultra escuro (quase preto) */
+            --card-bg: #13161a;            /* Blocos internos pretos/foscados */
+            --borda: #1e242b;              /* Linhas divisórias muito discretas */
+            --texto-principal: #ffffff;    /* Texto principal branco puro */
+            --texto-mutated-kanban: #9ca3af;
+            --texto-mutado: #9ca3af;       /* Texto secundário cinza claro */
+            --cor-primaria: #00f3ff;       /* CIANO NEON LRB */
+            --cor-acc: #39ff14;            /* VERDE NEON FIEL LRB */
+            --cor-acc-txt: #000000;        /* Texto preto sobre o Verde Neon para contraste */
+            --shadow-cards: 0 0 15px rgba(57, 255, 20, 0.07); /* Brilho neon sutil nos cards */
+            --header-bg: #13161a;
+            --badge-bg: #1e242b;
+        }
+
+        * { font-family: 'Inter', sans-serif; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            background-color: var(--bg-principal);
+            color: var(--texto-principal);
+            transition: background-color 0.3s ease, color 0.3s ease;
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        .mobile-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--borda);
+            border-radius: 20px;
+            box-shadow: var(--shadow-cards);
+            transition: transform 0.2s, box-shadow 0.2s, background-color 0.3s ease;
+        }
+
+        input, select, textarea {
+            background: var(--bg-principal);
+            border: 1px solid var(--borda);
+            border-radius: 12px;
+            color: var(--texto-principal);
+            font-size: 16px !important;
+            font-weight: 500;
+            min-height: 48px;
+            padding: 0.75rem 1rem;
+            width: 100%;
+            transition: border-color 0.2s, box-shadow 0.2s, background-color 0.3s ease;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--cor-acc);
+            box-shadow: 0 0 0 3px rgba(57, 255, 20, 0.15); /* Sombra neon */
+        }
+
+        .btn-primary { 
+            background-color: var(--cor-acc); 
+            color: var(--cor-acc-txt); 
+            border-radius: 14px; 
+            font-weight: 700; 
+            min-height: 48px;
+            display: inline-flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 0.5rem; 
+            cursor: pointer; 
+            border: none;
+            transition: all 0.2s ease;
+        }
+        .btn-primary:active { transform: scale(0.97); }
+
+        .btn-secondary { 
+            background-color: var(--badge-bg); 
+            color: var(--texto-principal); 
+            border-radius: 14px; 
+            font-weight: 600; 
+            min-height: 48px;
+            display: inline-flex; 
+            align-items: center; 
+            justify-content: center; 
+            cursor: pointer; 
+            border: 1px solid var(--borda);
+            transition: all 0.2s ease;
+        }
+        .btn-secondary:active { transform: scale(0.97); }
+
+        .kanban-scrollbar { -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+        .kanban-scrollbar::-webkit-scrollbar { display: none; }
+        
+        .valor-positivo { color: #10b981; } 
+        .valor-negativo { color: #ef4444; } 
+    </style>
+</head>
+<body class="min-h-screen pb-10">
+
+    <div id="bloco-auth" class="w-full min-h-screen flex flex-col items-center justify-center p-6 relative">
+        <div class="mobile-card w-full max-w-sm p-8 flex flex-col gap-6 text-center z-10">
+            <div class="flex flex-col items-center gap-1">
+                <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mb-2" style="background-color: var(--cor-primaria); color: var(--cor-acc-txt);">📊</div>
+                <h2 class="text-2xl font-bold">Gestão Financeira</h2>
+                <p class="text-sm font-medium" style="color: var(--texto-mutado)">Controle inteligente de gastos</p>
+            </div>
+            <div class="flex flex-col gap-3 text-left">
+                <input type="email" id="auth-email" value="usuario@lrb.com.br" placeholder="E-mail de Acesso">
+                <input type="password" id="auth-pass" value="******" placeholder="Senha">
+            </div>
+            <button onclick="executarAutenticacao()" class="btn-primary w-full" style="box-shadow: 0 4px 14px 0 rgba(57, 255, 20, 0.2);">Acessar Conta</button>
+        </div>
+        <div class="absolute bottom-10 text-center flex flex-col items-center gap-1">
+            <span class="text-xs font-semibold" style="color: var(--texto-mutado)">Desenvolvido e Distribuído por</span>
+            <span class="text-sm font-black" style="color: var(--cor-acc)">LRB INFORMÁTICA</span>
+        </div>
+    </div>
+
+    <div id="app-principal" class="w-full max-w-6xl mx-auto p-4 lg:p-6 hidden">
+        
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+            <div>
+                <h1 class="font-bold text-2xl tracking-tight">Visão Geral</h1>
+                <p class="text-sm font-medium" style="color: var(--texto-mutado)">Acompanhe seus rendimentos e despesas.</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                <button onclick="toggleOlhoVisibilidade()" id="btn-olho" class="p-2 min-h-[40px] flex items-center justify-center rounded-lg text-lg shadow-sm transition-colors" style="background-color: var(--badge-bg); color: var(--texto-principal);">👁️</button>
+                <select id="seletorThemeElemental" onchange="mudarTema(this.value)" class="w-auto py-2 px-3 min-h-[40px] text-sm font-semibold rounded-lg shadow-sm" style="background-color: var(--badge-bg); border-color: var(--borda);">
+                    <option value="LIGHT">☀️ Tema Claro</option>
+                    <option value="DARK">🌙 Tema Escuro</option>
+                </select>
+                <select id="seletor-mes" onchange="alterarMesFiltro(this.value)" class="w-auto py-2 px-3 min-h-[40px] text-sm font-semibold rounded-lg shadow-sm" style="background-color: var(--badge-bg); border-color: var(--borda);"></select>
+                <button onclick="deslogarUsuario()" class="p-2 min-h-[40px] rounded-lg text-sm font-bold bg-rose-500 text-white flex-1 md:flex-none shadow-sm shadow-rose-500/30">Sair</button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="mobile-card p-5 flex flex-col justify-between relative overflow-hidden">
+                <h4 class="font-semibold text-xs uppercase tracking-wider" style="color: var(--texto-mutado)">Receitas</h4>
+                <p id="lbl-entradas" class="text-2xl font-bold mt-2 valor-positivo">R$ 0,00</p>
+            </div>
+            <div class="mobile-card p-5 flex flex-col justify-between">
+                <h4 class="font-semibold text-xs uppercase tracking-wider" style="color: var(--texto-mutado)">Despesas</h4>
+                <p id="lbl-saidas" class="text-2xl font-bold mt-2 valor-negativo">R$ 0,00</p>
+            </div>
+            <div class="mobile-card p-5 flex flex-col justify-between border-l-4" style="border-left-color: var(--cor-acc);">
+                <h4 class="font-semibold text-xs uppercase tracking-wider" style="color: var(--texto-mutado)">Saldo Atual</h4>
+                <p id="lbl-saldo" class="text-3xl font-black mt-2">R$ 0,00</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            
+            <div class="mobile-card lg:col-span-2 flex flex-col">
+                <div class="p-4 border-b flex justify-between items-center" style="border-color: var(--borda);">
+                    <div>
+                        <h3 class="font-bold text-lg leading-tight">Análise de Gastos</h3>
+                        <p class="text-xs font-medium" style="color: var(--texto-mutado)">Distribuição de despesas</p>
+                    </div>
+                    <button onclick="toggleSecao('conteudo-grafico', this)" class="btn-secondary px-3 py-1 text-sm rounded-lg min-h-[30px] shadow-sm">➖</button>
+                </div>
+                <div id="conteudo-grafico" class="p-6 flex flex-col md:flex-row items-center gap-6 transition-all">
+                    <div class="w-full md:w-1/3">
+                        <div class="p-4 rounded-xl" style="background-color: var(--bg-principal);">
+                            <span class="text-xs uppercase font-semibold" style="color: var(--texto-mutado)">Total Analisado</span>
+                            <div id="lbl-total-grafico" class="text-xl font-bold mt-1" style="color: var(--cor-primaria)">R$ 0,00</div>
+                        </div>
+                    </div>
+                    <div class="w-full md:w-2/3 relative min-h-[400px]">
+                        <canvas id="meuGraficoPizza"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mobile-card flex flex-col h-full">
+                <div class="p-4 border-b flex justify-between items-center" style="border-color: var(--borda);">
+                    <h3 class="font-bold text-lg leading-tight">Configurações</h3>
+                    <button onclick="toggleSecao('conteudo-configs', this)" class="btn-secondary px-3 py-1 text-sm rounded-lg min-h-[30px] shadow-sm">➖</button>
+                </div>
+                <div id="conteudo-configs" class="p-5 flex flex-col gap-3 transition-all h-full">
+                    <div>
+                        <label class="block text-xs font-bold uppercase mb-1" style="color: var(--texto-mutado)">Filtrar por Membro</label>
+                        <select id="filtro-membro-global" onchange="alterarMembroFiltro(this.value)" class="text-sm min-h-[40px]"></select>
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="text" id="input-novo-membro" class="text-sm py-2 px-3 min-h-[40px]" placeholder="Novo membro...">
+                        <button onclick="criarNovoMembro()" class="btn-primary px-3 text-xs min-h-[40px] rounded-lg shadow-sm">Add</button>
+                    </div>
+                    <div class="border-t pt-2" style="border-color: var(--borda);">
+                        <label class="block text-xs font-bold uppercase mb-2" style="color: var(--texto-mutado)">Categorias Ativas</label>
+                        <div id="lista-chips-filtros" class="flex flex-wrap gap-2 max-h-[100px] overflow-y-auto kanban-scrollbar"></div>
+                    </div>
+                    <div class="mt-auto pt-2 border-t flex gap-2" style="border-color: var(--borda);">
+                        <input type="text" id="input-nova-categoria" class="text-sm py-2 px-3 min-h-[40px]" placeholder="Nova categoria...">
+                        <button onclick="criarNovaCategoria()" class="btn-primary px-3 text-xs min-h-[40px] rounded-lg shadow-sm">Add</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mobile-card mb-6">
+            <div class="p-4 border-b flex justify-between items-center" style="border-color: var(--borda);">
+                <div>
+                    <h3 class="font-bold text-lg leading-tight">Ações Rápidas</h3>
+                    <p class="text-xs font-medium" style="color: var(--texto-mutado)">Gerencie suas finanças facilmente</p>
+                </div>
+                <button onclick="toggleSecao('conteudo-acoes', this)" class="btn-secondary px-3 py-1 text-sm rounded-lg min-h-[30px] shadow-sm">➖</button>
+            </div>
+            <div id="conteudo-acoes" class="p-5 flex flex-col sm:flex-row items-center justify-between gap-4 transition-all">
+                <div class="grid grid-cols-2 sm:flex w-full gap-3">
+                    <button onclick="abrirModalLancamento()" class="btn-primary px-4 py-2 text-sm shadow-sm">➕ Nova Transação</button>
+                    <button onclick="abrirModalImportador()" class="btn-secondary px-4 py-2 text-sm shadow-sm">📥 Importar OFX/PDF</button>
+                    <button onclick="adicionarColunaDespesa()" class="btn-secondary px-4 py-2 text-sm shadow-sm">🏦 Nova Conta</button>
+                    <button onclick="limparTodoHistorico()" class="btn-secondary text-rose-500 px-4 py-2 text-sm shadow-sm shadow-rose-500/10" style="color: #ef4444;">🗑️ Limpar Dados</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="w-full overflow-x-auto pb-4 kanban-scrollbar mb-6">
+            <div id="kanban-board-row" class="flex gap-4 min-w-max items-start"></div>
+        </div>
+
+        <div class="mobile-card p-6 mb-6">
+            <h3 class="font-bold text-lg mb-4">Histórico de Movimentação</h3>
+            <div class="relative h-64 w-full">
+                <canvas id="graficoProgressaoLinha"></canvas>
+            </div>
+        </div>
+
+        <div class="w-full text-center py-6 opacity-60">
+            <p class="text-xs font-semibold">Distribuído e Desenvolvido por</p>
+            <p class="text-sm font-black mt-1" style="color: var(--cor-acc)">LRB INFORMÁTICA</p>
+        </div>
+    </div>
+
+    <div id="modal-lancamento" class="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center sm:p-4 hidden backdrop-blur-sm transition-opacity">
+        <div class="mobile-card w-full max-w-md max-h-[90vh] overflow-y-auto p-6 rounded-b-none sm:rounded-2xl shadow-2xl flex flex-col gap-4">
+            <h3 id="modal-titulo-texto" class="text-xl font-bold">Nova Transação</h3>
+            
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold mb-1" style="color: var(--texto-mutado)">Tipo</label>
+                    <select id="md-tipo" onchange="alternarOrigemDestinoModal(this.value)">
+                        <option value="SAÍDA">Despesa (-)</option>
+                        <option value="ENTRADA">Receita (+)</option>
+                    </select>
+                </div>
+                <div id="container-selecao-coluna">
+                    <label class="block text-xs font-bold mb-1" style="color: var(--texto-mutado)">Conta</label>
+                    <select id="md-coluna"></select>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold mb-1" style="color: var(--texto-mutado)">Membro</label>
+                    <select id="md-membro"></select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold mb-1" style="color: var(--texto-mutado)">Valor (R$)</label>
+                    <input type="number" step="0.01" id="md-valor" placeholder="0.00">
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-xs font-bold mb-1" style="color: var(--texto-mutado)">Nome da Compra</label>
+                <input type="text" id="md-desc" placeholder="Ex: KaBuM! - Parcela 1/9">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold mb-1" style="color: var(--texto-mutado)">Produto / Serviço (Nota)</label>
+                <input type="text" id="md-nota" placeholder="Ex: Water cooler">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold mb-2" style="color: var(--texto-mutado)">Categorias</label>
+                <button type="button" onclick="toggleContainerCategoriasModal()" class="btn-secondary w-full py-2 px-4 text-xs min-h-[40px] flex items-center justify-between">
+                    <span>🏷️ Selecionar Tags/Categorias</span>
+                    <span id="md-txt-qtd-categorias" class="font-bold px-2 py-0.5 rounded-full text-[10px]" style="background-color: var(--cor-acc); color: var(--cor-acc-txt);">1</span>
+                </button>
+                <div id="md-container-chips" class="flex flex-wrap gap-2 mt-3 p-3 rounded-xl hidden max-h-[150px] overflow-y-auto kanban-scrollbar" style="background-color: var(--badge-bg);"></div>
+            </div>
+
+            <div class="flex justify-end gap-3 pt-4 mt-2 border-t" style="border-color: var(--borda);">
+                <button onclick="fecharModalLancamento()" class="btn-secondary px-6">Cancelar</button>
+                <button onclick="salvarLancamentoModal()" class="btn-primary px-6">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-importador" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm">
+        <div class="mobile-card p-6 w-full max-w-lg flex flex-col gap-4">
+            <h3 class="text-xl font-bold">Importar Arquivo Automático</h3>
+            <p class="text-sm" style="color: var(--texto-mutado)">Nosso sistema identifica automaticamente de qual banco é a sua fatura PDF ou OFX e cria a coluna personalizada.</p>
+            
+            <div>
+                <label class="block text-xs font-bold mb-1" style="color: var(--texto-mutado)">Conta Destino (Se não for detectado)</label>
+                <select id="imp-coluna"></select>
+            </div>
+            <div class="p-6 border-2 border-dashed rounded-xl text-center flex flex-col items-center justify-center gap-3 cursor-pointer transition" style="border-color: var(--borda); background-color: var(--badge-bg);">
+                <input type="file" id="imp-arquivo" onchange="detectarEProcessarArquivo(this)" class="opacity-0 absolute w-full h-24 cursor-pointer" accept=".ofx,.pdf,.txt,.csv">
+                <span class="text-3xl">🤖</span>
+                <p class="text-sm font-bold">Toque para Auto-Detectar PDF ou OFX</p>
+            </div>
+            <div class="flex justify-end gap-3 pt-4 mt-2">
+                <button onclick="fecharModalImportador()" class="btn-secondary px-6">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container" class="fixed top-5 left-1/2 transform -translate-x-1/2 z-[100] flex flex-col gap-2 pointer-events-none"></div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+Chart.register(ChartDataLabels);
+
+const UI = {
+    escapeHTML(str) {
+        if (!str) return "";
+        const div = document.createElement('div'); div.textContent = str; return div.innerHTML;
+    },
+    showToast(msg, type = 'success') {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        const bgColor = type === 'error' ? 'bg-red-500' : 'bg-emerald-500';
+        toast.className = `px-6 py-3 rounded-full text-white font-bold text-sm shadow-lg ${bgColor} transform transition-all duration-300 -translate-y-10 opacity-0 flex items-center justify-center z-[200]`;
+        toast.innerHTML = msg; container.appendChild(toast);
+        requestAnimationFrame(() => toast.classList.remove('-translate-y-10', 'opacity-0'));
+        setTimeout(() => { toast.classList.add('-translate-y-10', 'opacity-0'); setTimeout(() => toast.remove(), 300); }, 3500);
+    }
+};
+
+const BANCOS_BRANDING = {
+    "NUBANK": { nome: "Nubank", cor: "#8A05BE", icon: "🟣", keywords: ["NUBANK", "NU PAGAMENTOS"] },
+    "ITAU": { nome: "Itaú", cor: "#EC7000", icon: "🟠", keywords: ["ITAU", "ITAÚ"] },
+    "SANTANDER": { nome: "Santander", cor: "#EC0000", icon: "🟥", keywords: ["SANTANDER"] },
+    "BRADESCO": { nome: "Bradesco", cor: "#CC092F", icon: "🔴", keywords: ["BRADESCO"] },
+    "BANCO DO BRASIL": { nome: "Banco do Brasil", cor: "#F8D117", icon: "🟡", keywords: ["BANCO DO BRASIL", "BB"] },
+    "CAIXA": { nome: "Caixa", cor: "#005CA9", icon: "🔵", keywords: ["CAIXA ECONOMICA", "CAIXA ECONÔMICA"] },
+    "INTER": { nome: "Inter", cor: "#FF7A00", icon: "🟧", keywords: ["BANCO INTER", "INTER"] },
+    "C6": { nome: "C6 Bank", cor: "#242424", icon: "⬛", keywords: ["C6 BANK", "C6"] },
+    "PICPAY": { nome: "PicPay", cor: "#11C76F", icon: "🟢", keywords: ["PICPAY"] },
+    "PAN": { nome: "Banco Pan", cor: "#00A1FC", icon: "🟦", keywords: ["BANCO PAN", "PAN"] },
+    "MERCADO PAGO": { nome: "Mercado Pago", cor: "#009EE3", icon: "🤝", keywords: ["MERCADO PAGO"] },
+    "PAGBANK": { nome: "PagBank", cor: "#1BB853", icon: "🍋", keywords: ["PAGSEGURO", "PAGBANK"] },
+    "SICOOB": { nome: "Sicoob", cor: "#003641", icon: "🌲", keywords: ["SICOOB"] },
+    "SICREDI": { nome: "Sicredi", cor: "#008542", icon: "🍀", keywords: ["SICREDI"] }
+};
+
+function detectarBancoArquivo(texto, nomeArquivo) {
+    const txtCompleto = (texto + " " + nomeArquivo).toUpperCase();
+    for (const key in BANCOS_BRANDING) {
+        if (BANCOS_BRANDING[key].keywords.some(kw => txtCompleto.includes(kw))) {
+            return BANCOS_BRANDING[key];
+        }
+    }
+    return null;
+}
+
+function obterCorTextoContraste(hexcolor) {
+    if (!hexcolor || hexcolor.startsWith('var')) return 'var(--texto-principal)';
+    let hex = hexcolor.replace('#', '');
+    if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+    return (yiq >= 135) ? '#1e293b' : '#ffffff';
+}
+
+let colunasAtivas = JSON.parse(localStorage.getItem('k_colunas')) || ["NUBANK", "BRADESCO"];
+let lancamentos = JSON.parse(localStorage.getItem('k_lancamentos')) || [];
+let categorias = JSON.parse(localStorage.getItem('k_categorias')) || ["Mercado", "Combustível", "Casa", "Streaming", "Lazer", "Outros"];
+let filtrosCategoriasAtivos = JSON.parse(localStorage.getItem('k_filtros_ativos')) || [...categorias];
+let membrosFamilia = JSON.parse(localStorage.getItem('k_membros')) || ["Pessoal"];
+let membroFiltroAtual = localStorage.getItem('k_membro_filtro') || "TODOS";
+let temaAtual = localStorage.getItem('k_tema_app') || 'LIGHT';
+let valoresVisiveis = localStorage.getItem('k_valores_visiveis') !== 'false';
+let mesCorrente = '2026-05';
+let chartPizzaInstance = null, chartLinhaInstance = null;
+let modalCategoriasSelecionadas = []; let editandoId = null;
+
+const DICIONARIO_CATEGORIAS = {
+    "Streaming": ["netflix", "spotify", "disney", "hbo", "prime", "youtube"],
+    "Combustível": ["posto", "shell", "petrobras", "ipiranga", "gasolina"],
+    "Mercado": ["supermercado", "atacadao", "carrefour", "assai", "mercado"],
+    "Lazer": ["restaurante", "bar", "cinema", "ifood", "uber"]
+};
+
+// Cores atualizadas para refletir a marca LRB
+const coresGraficos = {
+    'LIGHT': ['#00b4d8', '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#14b8a6', '#6366f1', '#64748b'],
+    'DARK': ['#39ff14', '#00f3ff', '#ff0055', '#f59e0b', '#8b5cf6', '#14b8a6', '#3b82f6', '#ec4899', '#9ca3af']
+};
+
+window.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('seletorThemeElemental').value = temaAtual;
+    document.getElementById('btn-olho').innerText = valoresVisiveis ? '👁️' : '🙈';
+    mudarTema(temaAtual); inicializarMeses(); atualizarSeletoresMembros(); renderizarFiltrosChips();
+    if(!colunasAtivas.includes("ENTRADAS")) colunasAtivas.unshift("ENTRADAS");
+});
+
+function toggleSecao(id, btn) {
+    const el = document.getElementById(id);
+    if (el.classList.contains('hidden')) {
+        el.classList.remove('hidden'); btn.innerText = '➖';
+    } else {
+        el.classList.add('hidden'); btn.innerText = '➕';
+    }
+}
+
+function toggleOlhoVisibilidade() {
+    valoresVisiveis = !valoresVisiveis;
+    localStorage.setItem('k_valores_visiveis', valoresVisiveis);
+    document.getElementById('btn-olho').innerText = valoresVisiveis ? '👁️' : '🙈';
+    renderizarPainelGeral();
+}
+
+function inicializarMeses() {
+    const seletor = document.getElementById('seletor-mes');
+    seletor.innerHTML = `<option value="2026-04">Abril / 2026</option><option value="2026-05">Maio / 2026</option><option value="2026-06">Junho / 2026</option>`;
+    seletor.value = mesCorrente;
+}
+
+function executarAutenticacao() {
+    document.getElementById('bloco-auth').style.display = 'none'; document.getElementById('app-principal').classList.remove('hidden'); renderizarPainelGeral();
+}
+function deslogarUsuario() { document.getElementById('bloco-auth').style.display = 'flex'; document.getElementById('app-principal').classList.add('hidden'); }
+function atualizarSeletoresMembros() { const select = document.getElementById('filtro-membro-global'); select.innerHTML = `<option value="TODOS">Todos os Membros</option>`; membrosFamilia.forEach(m => select.innerHTML += `<option value="${m}">${m}</option>`);
+select.value = membroFiltroAtual; }
+function alterarMembroFiltro(m) { membroFiltroAtual = m; localStorage.setItem('k_membro_filtro', m); renderizarPainelGeral(); }
+
+function criarNovoMembro() {
+    const val = UI.escapeHTML(document.getElementById('input-novo-membro').value.trim());
+    if(val && !membrosFamilia.includes(val)) { membrosFamilia.push(val); localStorage.setItem('k_membros', JSON.stringify(membrosFamilia)); document.getElementById('input-novo-membro').value = '';
+    atualizarSeletoresMembros(); UI.showToast(`Membro adicionado.`); renderizarPainelGeral(); }
+}
+
+function renderizarFiltrosChips() {
+    const container = document.getElementById('lista-chips-filtros'); container.innerHTML = '';
+    categorias.forEach(cat => {
+        const isActive = filtrosCategoriasAtivos.includes(cat); const chip = document.createElement('button');
+        chip.className = `px-3 py-1.5 text-xs font-bold rounded-lg transition-colors border`;
+        chip.style.backgroundColor = isActive ? 'var(--cor-acc)' : 'var(--badge-bg)';
+        chip.style.color = isActive ? 'var(--cor-acc-txt)' : 'var(--texto-mutado)';
+        chip.style.borderColor = isActive ? 'var(--cor-acc)' : 'var(--borda)';
+        chip.innerText = cat; chip.onclick = () => toggleFiltro(cat); container.appendChild(chip);
+    });
+}
+
+function toggleFiltro(cat) {
+    if(filtrosCategoriasAtivos.includes(cat)) filtrosCategoriasAtivos = filtrosCategoriasAtivos.filter(c => c !== cat); else filtrosCategoriasAtivos.push(cat);
+    localStorage.setItem('k_filtros_ativos', JSON.stringify(filtrosCategoriasAtivos)); renderizarFiltrosChips(); renderizarPainelGeral();
+}
+
+function criarNovaCategoria() {
+    const val = UI.escapeHTML(document.getElementById('input-nova-categoria').value.trim());
+    if(val && !categorias.includes(val)) { categorias.push(val); filtrosCategoriasAtivos.push(val); localStorage.setItem('k_categorias', JSON.stringify(categorias)); localStorage.setItem('k_filtros_ativos', JSON.stringify(filtrosCategoriasAtivos));
+    document.getElementById('input-nova-categoria').value = ''; renderizarFiltrosChips(); renderizarPainelGeral(); }
+}
+
+function mudarTema(novoTema) { 
+    temaAtual = novoTema; localStorage.setItem('k_tema_app', novoTema); document.documentElement.setAttribute('data-theme', novoTema);
+    document.getElementById('meta-theme-color').setAttribute('content', novoTema === 'LIGHT' ? '#eceef1' : '#0b0c0e'); renderizarPainelGeral(); 
+}
+function alterarMesFiltro(v) { mesCorrente = v; renderizarPainelGeral(); }
+
+function abrirModalLancamento(id = null) {
+    const colSelect = document.getElementById('md-coluna'); colSelect.innerHTML = '';
+    colunasAtivas.forEach(c => { if(c !== "ENTRADAS") colSelect.innerHTML += `<option value="${c}">${c}</option>`; });
+    const membSelect = document.getElementById('md-membro'); membSelect.innerHTML = '';
+    membrosFamilia.forEach(m => { membSelect.innerHTML += `<option value="${m}">${m}</option>`; });
+    const tituloTxt = document.getElementById('modal-titulo-texto'); document.getElementById('md-container-chips').classList.add('hidden');
+    if(id) {
+        editandoId = id; tituloTxt.innerText = "✏️ Editar Compra";
+        const item = lancamentos.find(l => l.id === id); if(!item) return;
+        document.getElementById('md-desc').value = item.desc || ''; document.getElementById('md-nota').value = item.nota || '';
+        document.getElementById('md-valor').value = item.valor || ''; document.getElementById('md-tipo').value = item.tipo || 'SAÍDA'; document.getElementById('md-coluna').value = item.coluna !== 'ENTRADAS' ?
+        item.coluna : (colunasAtivas[1] || ''); document.getElementById('md-membro').value = item.membro || membrosFamilia[0]; alternarOrigemDestinoModal(item.tipo); modalCategoriasSelecionadas = Array.isArray(item.categorias) ? [...item.categorias] : [item.categorias || "Outros"];
+    } else {
+        editandoId = null; tituloTxt.innerText = "➕ Nova Transação";
+        document.getElementById('md-desc').value = ''; document.getElementById('md-nota').value = ''; document.getElementById('md-valor').value = ''; document.getElementById('md-tipo').value = 'SAÍDA'; alternarOrigemDestinoModal('SAÍDA'); document.getElementById('md-membro').value = membrosFamilia[0]; modalCategoriasSelecionadas = ["Outros"];
+    }
+    renderizarChipsModal(); document.getElementById('modal-lancamento').classList.remove('hidden');
+}
+
+function fecharModalLancamento() { document.getElementById('modal-lancamento').classList.add('hidden'); }
+function alternarOrigemDestinoModal(t) { document.getElementById('container-selecao-coluna').style.display = t === 'ENTRADA' ? 'none' : 'block'; }
+function toggleContainerCategoriasModal() { document.getElementById('md-container-chips').classList.toggle('hidden'); }
+
+function renderizarChipsModal() {
+    const cont = document.getElementById('md-container-chips'); cont.innerHTML = '';
+    categorias.forEach(c => {
+        const atv = modalCategoriasSelecionadas.includes(c); const b = document.createElement('button'); b.type = "button";
+        b.className = `px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all`;
+        b.style.backgroundColor = atv ? 'var(--cor-acc)' : 'transparent';
+        b.style.color = atv ? 'var(--cor-acc-txt)' : 'var(--texto-mutado)';
+        b.style.borderColor = atv ? 'var(--cor-acc)' : 'var(--borda)';
+        b.innerText = c; b.onclick = () => { if(modalCategoriasSelecionadas.includes(c)) modalCategoriasSelecionadas = modalCategoriasSelecionadas.filter(item => item !== c); else modalCategoriasSelecionadas.push(c); renderizarChipsModal(); }; cont.appendChild(b);
+    });
+    document.getElementById('md-txt-qtd-categorias').innerText = modalCategoriasSelecionadas.length;
+}
+
+function salvarLancamentoModal() {
+    const desc = UI.escapeHTML(document.getElementById('md-desc').value.trim()); const nota = UI.escapeHTML(document.getElementById('md-nota').value.trim());
+    const valor = parseFloat(document.getElementById('md-valor').value); const tipo = document.getElementById('md-tipo').value; const membro = document.getElementById('md-membro').value; let coluna = tipo === 'ENTRADA' ?
+    'ENTRADAS' : document.getElementById('md-coluna').value;
+    if(!desc || isNaN(valor) || valor <= 0) return UI.showToast("Dados inválidos", "error"); if(modalCategoriasSelecionadas.length === 0) modalCategoriasSelecionadas = ["Outros"];
+    if(editandoId) { const index = lancamentos.findIndex(l => l.id === editandoId);
+    if(index !== -1) { lancamentos[index] = {...lancamentos[index], desc, nota, valor, tipo, coluna, categorias: [...modalCategoriasSelecionadas], membro}; } UI.showToast("Alterações salvas.");
+    } else { lancamentos.push({ id: Date.now(), desc, nota, valor, tipo, coluna, categorias: [...modalCategoriasSelecionadas], membro, mes: mesCorrente }); UI.showToast("Salvo com sucesso!");
+    }
+    localStorage.setItem('k_lancamentos', JSON.stringify(lancamentos)); fecharModalLancamento(); renderizarPainelGeral();
+}
+
+function removerLancamento(id) { if(confirm("Deseja apagar esta transação?")) { lancamentos = lancamentos.filter(l => l.id !== id);
+localStorage.setItem('k_lancamentos', JSON.stringify(lancamentos)); renderizarPainelGeral(); } }
+function adicionarColunaDespesa() { const n = prompt("Nome da nova conta:"); if(n && !colunasAtivas.includes(n.toUpperCase())) { colunasAtivas.push(n.toUpperCase());
+localStorage.setItem('k_colunas', JSON.stringify(colunasAtivas)); renderizarPainelGeral(); UI.showToast("Conta criada."); } }
+function limparTodoHistorico() { if(confirm("ATENÇÃO: Apagar TODOS os dados do aplicativo?")) { lancamentos = [];
+localStorage.setItem('k_lancamentos', "[]"); renderizarPainelGeral(); UI.showToast("Dados apagados.", "error"); } }
+function abrirModalImportador() { const colSelect = document.getElementById('imp-coluna'); colSelect.innerHTML = '';
+colunasAtivas.forEach(c => { if(c !== "ENTRADAS") colSelect.innerHTML += `<option value="${c}">${c}</option>`; }); document.getElementById('imp-arquivo').value = ''; document.getElementById('modal-importador').classList.remove('hidden'); }
+function fecharModalImportador() { document.getElementById('modal-importador').classList.add('hidden'); }
+
+function detectarEProcessarArquivo(input) {
+    const arq = input.files[0]; if(!arq) return; const leitor = new FileReader();
+    if(arq.name.endsWith(".pdf")) {
+        UI.showToast("Analisando PDF...", "success");
+        leitor.onload = async function() { const doc = await pdfjsLib.getDocument({ data: new Uint8Array(this.result) }).promise; let txt = "";
+        for(let p=1; p<=doc.numPages; p++) txt += (await (await doc.getPage(p)).getTextContent()).items.map(i => i.str).join(" ") + " "; processarImportacao(txt, arq.name, processarTextoRegex); }; leitor.readAsArrayBuffer(arq);
+    } else if(arq.name.endsWith(".ofx")) {
+        UI.showToast("Analisando OFX...", "success");
+        leitor.onload = function() { processarImportacao(this.result, arq.name, processarMotorOFX); }; leitor.readAsText(arq, 'UTF-8');
+    }
+}
+
+function processarImportacao(conteudo, nomeArq, funcaoExtrair) {
+    let bancoConfig = detectarBancoArquivo(conteudo, nomeArq); let nomeColunaFinal = document.getElementById('imp-coluna').value;
+    if (bancoConfig) { nomeColunaFinal = bancoConfig.nome.toUpperCase(); if (!colunasAtivas.includes(nomeColunaFinal)) { colunasAtivas.push(nomeColunaFinal); localStorage.setItem('k_colunas', JSON.stringify(colunasAtivas)); UI.showToast(`Conta autodetectada!`);
+    } }
+    const adicoes = funcaoExtrair(conteudo, nomeColunaFinal);
+    if(adicoes > 0) { localStorage.setItem('k_lancamentos', JSON.stringify(lancamentos)); UI.showToast(`${adicoes} transações processadas.`); fecharModalImportador();
+    renderizarPainelGeral(); } else { UI.showToast("Nenhuma transação válida lida.", "error"); }
+}
+
+function processarMotorOFX(texto, colDestino) {
+    let add = 0;
+    const blocosTransacionais = texto.split(/<STMTTRN>/i);
+    for (let i = 1; i < blocosTransacionais.length; i++) {
+        const bloco = blocosTransacionais[i];
+        const valorMatch = bloco.match(/<TRNAMT>([\d.-]+)/i); let memoMatch = bloco.match(/<MEMO>([^<]+)/i) || bloco.match(/<NAME>([^<]+)/i);
+        if (valorMatch && memoMatch) {
+            let val = parseFloat(valorMatch[1]);
+            let desc = memoMatch[1].trim(); if (isNaN(val) || val === 0) continue; let tipo = "SAÍDA";
+            if (val < 0) { tipo = "SAÍDA"; val = Math.abs(val); } else { tipo = "ENTRADA"; }
+            let cat = "Outros";
+            for (const [k, p] of Object.entries(DICIONARIO_CATEGORIAS)) if (p.some(pal => desc.toLowerCase().includes(pal))) cat = k;
+            lancamentos.push({ id: Date.now() + Math.random(), desc: UI.escapeHTML(desc), nota: "", valor: val, tipo, coluna: tipo === "ENTRADA" ? "ENTRADAS" : colDestino, categorias: [cat], membro: membrosFamilia[0], mes: mesCorrente });
+            add++;
+        }
+    } return add;
+}
+
+function processarTextoRegex(texto, colDestino) {
+    let add = 0;
+    const regex = /(\d{2}\/\d{2})\s+((?:(?!\d{2}\/\d{2}).)+?)(?:R\$\s*)?(-?\d{1,3}(?:\.\d{3})*,\d{2})/g; let m;
+    while((m = regex.exec(texto.replace(/\s+/g, ' '))) !== null) {
+        let desc = m[2].trim();
+        let val = parseFloat(m[3].replace(/\./g, '').replace(',', '.')); if(isNaN(val) || val === 0 || desc.length < 3) continue;
+        let tipo = val < 0 ? "ENTRADA" : "SAÍDA"; val = Math.abs(val); let cat = "Outros";
+        for (const [k, p] of Object.entries(DICIONARIO_CATEGORIAS)) if (p.some(pal => desc.toLowerCase().includes(pal))) cat = k;
+        lancamentos.push({ id: Date.now()+Math.random(), desc: UI.escapeHTML(desc), nota: "", valor: val, tipo, coluna: tipo==="ENTRADA"?"ENTRADAS":colDestino, categorias: [cat], membro: membrosFamilia[0], mes: mesCorrente }); add++;
+    } return add;
+}
+
+// ==========================================
+// RENDERIZAÇÃO E FORMATAÇÃO DE VISIBILIDADE
+// ==========================================
+function formataValorVisivel(val, pref = "R$ ") {
+    if(!valoresVisiveis) return "R$ •••••";
+    return pref + val.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+}
+
+function renderizarPainelGeral() {
+    const filtroMes = lancamentos.filter(l => l.mes === mesCorrente && (membroFiltroAtual === "TODOS" || l.membro === membroFiltroAtual));
+    let tEnt = 0, tSai = 0; filtroMes.forEach(l => l.tipo === "ENTRADA" ? tEnt += l.valor : tSai += l.valor);
+    document.getElementById('lbl-entradas').innerText = formataValorVisivel(tEnt);
+    document.getElementById('lbl-saidas').innerText = formataValorVisivel(tSai);
+    document.getElementById('lbl-saldo').innerText = formataValorVisivel(tEnt - tSai);
+
+    renderizarKanban(filtroMes); processarGraficos(filtroMes);
+}
+
+function renderizarKanban(dados) {
+    const row = document.getElementById('kanban-board-row'); row.innerHTML = '';
+    colunasAtivas.forEach(col => {
+        let bConfig = null; for (const k in BANCOS_BRANDING) { if (BANCOS_BRANDING[k].nome.toUpperCase() === col.toUpperCase()) bConfig = BANCOS_BRANDING[k]; }
+        const possuiBranding = !!bConfig; const corBanco = possuiBranding ? bConfig.cor : 'transparent'; const bgColuna = possuiBranding ? `${corBanco}14` : 'var(--card-bg)'; const corLinhaTop = possuiBranding ? corBanco : 'var(--borda)'; const iconeExibicao = possuiBranding ? `${bConfig.icon} ` : (col === "ENTRADAS" ? '🟢 ' : '🏦 ');
+        
+        const b = document.createElement('div');
+        b.className = "mobile-card min-w-[280px] w-72 flex flex-col shrink-0 overflow-hidden transition-all duration-300";
+        b.style.backgroundColor = bgColuna; b.style.borderColor = possuiBranding ? `${corBanco}35` : 'var(--borda)';
+        
+        const idConteudoCol = "kanban-col-" + col.replace(/\s+/g, '-');
+        
+        b.innerHTML = `
+            <div class="px-4 py-3 font-bold text-sm border-b flex items-center justify-between" style="border-top: 4px solid ${corLinhaTop}; border-bottom-color: ${possuiBranding ? corBanco + '25' : 'var(--borda)'}; background: ${possuiBranding ? corBanco + '18' : 'transparent'}; color: var(--texto-principal);">
+                <div class="flex items-center gap-2"><span>${iconeExibicao}</span><span class="tracking-wide">${col}</span></div>
+                <button onclick="toggleSecao('${idConteudoCol}', this)" class="opacity-50 hover:opacity-100 text-xs px-2 py-1 rounded transition" style="background-color: var(--badge-bg); color: var(--texto-principal);">➖</button>
+            </div>
+            <div id="${idConteudoCol}" class="p-4 flex flex-col gap-3 max-h-[420px] overflow-y-auto kanban-scrollbar container-cards-coluna transition-all"></div>
+        `;
+        
+        const cont = b.querySelector('.container-cards-coluna');
+        dados.filter(d => d.coluna === col).forEach(item => {
+            const c = document.createElement('div'); c.className = "p-3 rounded-xl border relative shadow-sm hover:shadow-md transition-all duration-200 group";
+            let bgCard = 'var(--card-bg)'; let corTextoCard = 'var(--texto-principal)'; let bordaCard = 'var(--borda)';
+            if (possuiBranding) { bgCard = corBanco; corTextoCard = obterCorTextoContraste(corBanco); bordaCard = 'transparent'; }
+            c.style.backgroundColor = bgCard; c.style.borderColor = bordaCard; c.style.color = corTextoCard;
+            
+            const tagsArray = Array.isArray(item.categorias) ? item.categorias : [item.categorias || "Outros"];
+            const tagBg = corTextoCard === '#ffffff' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.06)';
+            const tagsHtml = tagsArray.map(cat => `<span class="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded whitespace-nowrap" style="background-color: ${tagBg}; color: ${corTextoCard};">${cat}</span>`).join(' ');
+            const notaHtml = item.nota ? `<div class="text-xs font-semibold mt-1 flex items-center gap-1" style="color: ${corTextoCard === '#ffffff' ? '#ffe4e6' : '#b91c1c'};">📦 ${item.nota}</div>` : '';
+            let classeValor = item.tipo === 'ENTRADA' ? 'valor-positivo' : 'valor-negativo'; let estiloValor = '';
+            if (possuiBranding && corTextoCard === '#ffffff') { estiloValor = `color: ${item.tipo === 'ENTRADA' ? '#A7F3D0' : '#FECACA'};`; classeValor = ''; }
+            
+            const textoValorCard = valoresVisiveis ? `R$ ${item.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})}` : `R$ •••••`;
+
+            c.innerHTML = `
+                <div class="flex flex-col text-xs font-semibold mb-1"><span class="truncate pr-2 block font-medium" style="color: ${corTextoCard};" title="${item.desc}">${item.desc}</span>${notaHtml}</div>
+                <div class="font-extrabold text-sm ${classeValor}" style="${estiloValor}">${textoValorCard}</div>
+                <div class="mt-2 flex flex-wrap gap-1 items-center">${tagsHtml}</div>
+                <div class="mt-2 pt-2 border-t flex justify-between items-center gap-1" style="border-color: ${possuiBranding ? 'rgba(255,255,255,0.18)' : 'var(--borda)'};">
+                    <span class="text-[9px] font-bold tracking-wide uppercase px-1.5 py-0.5 rounded truncate max-w-[90px]" style="background-color: ${tagBg}; color: ${corTextoCard};">${item.membro || 'Pessoal'}</span>
+                    <div class="flex gap-2 ml-auto">
+                        <button onclick="abrirModalLancamento(${item.id})" class="text-[10px] font-bold opacity-80 hover:opacity-100" style="color: ${corTextoCard === '#ffffff' ? '#93C5FD' : '#1D4ED8'};">Editar</button>
+                        <button onclick="removerLancamento(${item.id})" class="text-[10px] opacity-0 group-hover:opacity-100 transition-opacity" style="color: ${corTextoCard === '#ffffff' ? '#FCA5A5' : '#DC2626'};">Apagar</button>
+                    </div>
+                </div>
+            `;
+            cont.appendChild(c);
+        }); row.appendChild(b);
+    });
+}
+
+function processarGraficos(dados) {
+    const mapa = {}; let tot = 0;
+    dados.filter(l => l.tipo === "SAÍDA").forEach(i => {
+        const tags = Array.isArray(i.categorias) ? i.categorias : [i.categorias || "Outros"];
+        if (tags.some(c => filtrosCategoriasAtivos.includes(c))) tot += i.valor;
+        tags.forEach(c => { if (filtrosCategoriasAtivos.includes(c)) mapa[c] = (mapa[c] || 0) + i.valor; });
+    });
+    document.getElementById('lbl-total-grafico').innerText = formataValorVisivel(tot);
+
+    if(chartPizzaInstance) chartPizzaInstance.destroy();
+    
+    const corTextoLabel = temaAtual === 'LIGHT' ? '#1e293b' : '#f8fafc';
+
+    chartPizzaInstance = new Chart(document.getElementById('meuGraficoPizza').getContext('2d'), { 
+        type: 'pie', 
+        data: { 
+            labels: Object.keys(mapa), 
+            datasets: [{ 
+                data: Object.values(mapa), 
+                backgroundColor: coresGraficos[temaAtual], 
+                borderWidth: 2, borderColor: temaAtual === 'LIGHT' ? '#ffffff' : '#1e293b'
+            }] 
+        }, 
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false, 
+            layout: { padding: { left: 40, right: 40, top: 40, bottom: 40 } },
+            plugins: { 
+                legend: { display: false }, 
+                datalabels: { 
+                    display: true,
+                    color: corTextoLabel,
+                    font: { weight: '800', size: 10 },
+                    textAlign: 'center',
+                    anchor: 'end',
+                    align: 'end',
+                    offset: 8,
+                    clip: false,
+                    formatter: (value, ctx) => {
+                        let label = ctx.chart.data.labels[ctx.dataIndex];
+                        let percentage = tot > 0 ? ((value / tot) * 100).toFixed(1) + '%' : '0%';
+                        let vTxt = valoresVisiveis ? `R$ ${value.toLocaleString('pt-BR', {minimumFractionDigits: 2})}` : `R$ •••••`;
+                        return `${label}\n${vTxt}\n(${percentage})`;
+                    }
+                } 
+            } 
+        } 
+    });
+
+    const linha = ["2026-04", "2026-05", "2026-06"].map(m => lancamentos.reduce((a, l) => (l.mes===m && l.tipo==="SAÍDA") ? a+l.valor : a, 0));
+    if(chartLinhaInstance) chartLinhaInstance.destroy();
+    
+    // Configuração de cor dinâmica da linha baseada no tema LRB
+    const corLinhaLrb = temaAtual === 'DARK' ? '#39ff14' : '#00b4d8';
+    const bgLinhaLrb = temaAtual === 'DARK' ? 'rgba(57, 255, 20, 0.1)' : 'rgba(0, 180, 216, 0.1)';
+
+    chartLinhaInstance = new Chart(document.getElementById('graficoProgressaoLinha').getContext('2d'), { 
+        type: 'line', 
+        data: { 
+            labels: ["Abril", "Maio", "Junho"], 
+            datasets: [{ 
+                data: linha, 
+                borderColor: corLinhaLrb, 
+                backgroundColor: bgLinhaLrb, 
+                borderWidth: 3, 
+                fill: true, 
+                tension: 0.4 
+            }] 
+        }, 
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false, 
+            scales: { y: { display: false }, x: { grid: { display: false } } }, 
+            plugins: { 
+                legend: { display: false }, 
+                datalabels: { 
+                    align: 'top', 
+                    font: { weight: 'bold', size: 12 }, 
+                    formatter: v => valoresVisiveis ? 'R$ ' + v.toLocaleString('pt-BR') : 'R$ •••••' 
+                } 
+            } 
+        } 
+    });
+}
+</script>
+</body>
+</html>
