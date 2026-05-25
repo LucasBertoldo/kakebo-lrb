@@ -969,22 +969,49 @@ function processarMotorOFX(texto, colDestino) {
 
 function processarTextoRegex(texto, colDestino) {
     let novosLancamentos = [];
-    const regex = /(\d{2}\/\d{2})\s+((?:(?!\d{2}\/\d{2}).)+?)(?:R\$\s*)?(-?\d{1,3}(?:\.\d{3})*,\d{2})/g; let m;
+    const regex = /(\d{2}\/\d{2})\s+((?:(?!\d{2}\/\d{2}).)+?)(?:R\$\s*)?(-?\d{1,3}(?:\.\d{3})*,\d{2})/g; 
+    let m;
     const anoAtual = new Date().getFullYear();
     
     while((m = regex.exec(texto.replace(/\s+/g, ' '))) !== null) {
         let desc = m[2].trim();
-        let val = parseFloat(m[3].replace(/\./g, '').replace(',', '.')); if(isNaN(val) || val === 0 || desc.length < 3) continue;
+        
+        // 1. Limpeza agressiva e conversão segura do valor
+        let valorLimpo = m[3].replace(/\./g, '').replace(',', '.');
+        let val = parseFloat(valorLimpo); 
+        
+        // 2. Bloqueio absoluto contra NaN, vazios ou descrições curtas
+        if(Number.isNaN(val) || !Number.isFinite(val) || val === 0 || desc.length < 3) continue;
         
         let [dia, mes] = m[1].split('/');
         let dataStr = `${anoAtual}-${mes}-${dia}`;
         let mesStr = `${anoAtual}-${mes}`;
 
-        let tipo = val < 0 ? "ENTRADA" : "SAÍDA"; val = Math.abs(val); let cat = "Outros";
-        for (const [k, p] of Object.entries(DICIONARIO_CATEGORIAS)) if (p.some(pal => desc.toLowerCase().includes(pal))) cat = k;
+        let tipo = val < 0 ? "ENTRADA" : "SAÍDA"; 
+        val = Math.abs(val); 
         
-        novosLancamentos.push({ user_id: usuarioAtual.id, descricao: UI.escapeHTML(desc), nota: "", valor: val, tipo, coluna: tipo==="ENTRADA"?"ENTRADAS":colDestino, categories: [cat], membro: membrosFamilia[0], mes: mesStr, data: dataStr }); 
-    } return novosLancamentos;
+        // 3. Checagem final de segurança antes de empurrar para o array
+        if (Number.isNaN(val)) continue;
+
+        let cat = "Outros";
+        for (const [k, p] of Object.entries(DICIONARIO_CATEGORIAS)) {
+            if (p.some(pal => desc.toLowerCase().includes(pal))) cat = k;
+        }
+        
+        novosLancamentos.push({ 
+            user_id: usuarioAtual.id, 
+            descricao: UI.escapeHTML(desc), 
+            nota: "", 
+            valor: Number(val.toFixed(2)), // Garante que é um número com 2 casas decimais
+            tipo: tipo, 
+            coluna: tipo === "ENTRADA" ? "ENTRADAS" : colDestino, 
+            categorias: [cat], // CORRIGIDO: Estava 'categories' no original!
+            membro: (typeof membrosFamilia !== 'undefined' && membrosFamilia.length > 0) ? membrosFamilia[0] : "Pessoal", 
+            mes: mesStr, 
+            data: dataStr 
+        }); 
+    } 
+    return novosLancamentos;
 }
 
 function formataValorVisivel(val, pref = "R$ ") {
