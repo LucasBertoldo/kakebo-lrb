@@ -863,7 +863,12 @@ async function salvarLancamentoModal() {
         await salvarConfiguracoesNaNuvem();
     }
 
-    const payload = { user_id: usuarioAtual.id, descricao: desc, nota: nota, valor: valor, tipo: tipo, coluna: coluna, categorias: [...modalCategoriasSelecionadas], membro: membro, data: dataTransacao, mes: mesTransacao };
+    // SUPABASE FIX: Garantindo envio duplo (categories e categorias) para evitar rejeição por constraint de coluna inexistente no banco antigo
+    const payload = { 
+        user_id: usuarioAtual.id, descricao: desc, nota: nota, valor: valor, tipo: tipo, coluna: coluna, 
+        categories: [...modalCategoriasSelecionadas], categorias: [...modalCategoriasSelecionadas], 
+        membro: membro, data: dataTransacao, mes: mesTransacao 
+    };
 
     if(editandoId) { 
         const { error } = await supabaseClient.from('lancamentos').update(payload).eq('id', editandoId);
@@ -1024,13 +1029,17 @@ function processarMotorOFX(texto, colDestino) {
                 }
             }
 
-            novosLancamentos.push({ user_id: usuarioAtual.id, descricao: UI.escapeHTML(desc), nota: "", valor: val, tipo, coluna: tipo === "ENTRADA" ? "ENTRADAS" : colDestino, categorias: [cat], membro: "Pessoal", mes: mesStr, data: dataStr });
+            novosLancamentos.push({ 
+                user_id: usuarioAtual.id, descricao: UI.escapeHTML(desc), nota: "", valor: val, tipo, 
+                coluna: tipo === "ENTRADA" ? "ENTRADAS" : colDestino, categories: [cat], categorias: [cat], 
+                membro: "Pessoal", mes: mesStr, data: dataStr 
+            });
         }
     } return novosLancamentos;
 }
 
 // ==============================================================================
-// MOTOR DE LEITURA TEXTUAL CORRIGIDO (toUpperCase) E ADAPTADO LRB
+// MOTOR DE LEITURA TEXTUAL BLINDADO COM ENVIO DUPLO DE CATEGORIES
 // ==============================================================================
 function processarTextoRegex(texto, colDestino) {
     let novosLancamentos = [];
@@ -1039,7 +1048,7 @@ function processarTextoRegex(texto, colDestino) {
     const mesAtual = new Date().toISOString().substring(0, 7);
     const dataAtual = new Date().toISOString().split('T')[0];
     
-    // CORRIGIDO: toUpperCase() com letra maiúscula prevenindo a falha do motor
+    // Proteção de conversão segura
     const textoMaiusculo = textoLimpo.toUpperCase();
 
     // ==========================================
@@ -1070,6 +1079,7 @@ function processarTextoRegex(texto, colDestino) {
                         valor: Number(val.toFixed(2)),
                         tipo: p.tipo,
                         coluna: p.tipo === "ENTRADA" ? "ENTRADAS" : colDestino,
+                        categories: [p.cat],
                         categorias: [p.cat],
                         membro: "Pessoal",
                         mes: mesAtual,
@@ -1117,7 +1127,7 @@ function processarTextoRegex(texto, colDestino) {
         else { for (const [k, p] of Object.entries(DICIONARIO_CATEGORIAS)) { if (p.some(pal => descLower.includes(pal))) { cat = k; break; } } }
 
         novosLancamentos.push({
-            user_id: usuarioAtual.id, descricao: UI.escapeHTML(desc), nota: "", valor: Number(val.toFixed(2)), tipo: tipo, coluna: tipo === "ENTRADA" ? "ENTRADAS" : colDestino, categorias: [cat], membro: "Pessoal", mes: mesStr, data: dataStr
+            user_id: usuarioAtual.id, descricao: UI.escapeHTML(desc), nota: "", valor: Number(val.toFixed(2)), tipo: tipo, coluna: tipo === "ENTRADA" ? "ENTRADAS" : colDestino, categories: [cat], categorias: [cat], membro: "Pessoal", mes: mesStr, data: dataStr
         }); 
     }
     
@@ -1155,7 +1165,7 @@ function processarTextoRegex(texto, colDestino) {
         else { for (const [k, p] of Object.entries(DICIONARIO_CATEGORIAS)) { if (p.some(pal => descLower.includes(pal))) { cat = k; break; } } }
 
         novosLancamentos.push({
-            user_id: usuarioAtual.id, descricao: UI.escapeHTML(desc), nota: "", valor: Number(val.toFixed(2)), tipo: tipo, coluna: tipo === "ENTRADA" ? "ENTRADAS" : colDestino, categorias: [cat], membro: "Pessoal", mes: mesStr, data: dataStr
+            user_id: usuarioAtual.id, descricao: UI.escapeHTML(desc), nota: "", valor: Number(val.toFixed(2)), tipo: tipo, coluna: tipo === "ENTRADA" ? "ENTRADAS" : colDestino, categories: [cat], categorias: [cat], membro: "Pessoal", mes: mesStr, data: dataStr
         }); 
     }
     
