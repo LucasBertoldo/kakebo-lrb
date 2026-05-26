@@ -508,7 +508,7 @@ let categorias = [
     "Eletrônicos & Hardware", "Assinaturas & Softwares", "Oficina & Manutenção",
     "Moradia & Contas", "Mercado & Essenciais", "Saúde & Bem-estar",
     "Transporte & Veículo", "Alimentação Fora", "Lazer & Entretenimento",
-    "Parcelamentos", "Reserva & Investimentos", "Outros"
+    "Parcelamentos", "Impostos & Taxas", "Reserva & Investimentos", "Outros"
 ];
 let filtrosCategoriasAtivos = [...categorias];
 
@@ -518,7 +518,7 @@ let mapeamentoCategorias = {
     "ESTILO_DE_VIDA": ["Alimentação Fora", "Lazer & Entretenimento"],
     "TECNOLOGIA": ["Eletrônicos & Hardware", "Assinaturas & Softwares"],
     "INVESTIMENTOS": ["Reserva & Investimentos"],
-    "OUTROS": ["Parcelamentos", "Outros"]
+    "OUTROS": ["Parcelamentos", "Impostos & Taxas", "Outros"]
 };
 
 const DICIONARIO_CATEGORIAS = {
@@ -530,7 +530,8 @@ const DICIONARIO_CATEGORIAS = {
     "Alimentação Fora": ["restaurante", "bar", "cinema", "ifood", "burger", "mcdonalds", "pizza", "lanchonete", "sorveteria", "delivery", "churrascaria"],
     "Moradia & Contas": ["celg", "equatorial", "saneago", "agua", "energia", "luz", "condominio", "aluguel", "vivo", "claro", "tim", "internet", "iptu", "iof", "encargos", "saldo anterior"],
     "Saúde & Bem-estar": ["academia", "smartfit", "bluefit", "consulta", "exame", "hospital", "dentista", "cabelo", "barbearia", "salao"],
-    "Lazer & Entretenimento": ["ingresso", "show", "festa", "clube", "viagem", "hotel", "passagem", "sympla"]
+    "Lazer & Entretenimento": ["ingresso", "show", "festa", "clube", "viagem", "hotel", "passagem", "sympla"],
+    "Impostos & Taxas": ["inss", "irrf", "imposto", "taxa", "fgts", "darf", "gps", "deducao", "contribuicao"]
 };
 
 const coresGraficos = {
@@ -638,8 +639,6 @@ async function carregarConfiguracoesEDadosDoSupabase() {
 
     if (config) {
         colunasAtivas = config.colunas_ativas || ["ENTRADAS"];
-        
-        // 🚀 CÉREBRO DE MESCLAGEM: Junta as categorias do banco com as novas do app
         if (config.categorias && config.categorias.length > 0) {
             categorias = Array.from(new Set([...categorias, ...config.categorias]));
             filtrosCategoriasAtivos = [...categorias];
@@ -649,11 +648,8 @@ async function carregarConfiguracoesEDadosDoSupabase() {
                 for (const g in mapeamentoCategorias) { if (mapeamentoCategorias[g].includes(c)) { found = true; break; } }
                 if (!found) mapeamentoCategorias["OUTROS"].push(c);
             });
-            
-            // Força a atualização no banco para garantir que as categorias não se percam
             salvarConfiguracoesNaNuvem();
         }
-        
         membrosFamilia = config.membros || ["Pessoal"];
     }
 
@@ -814,6 +810,9 @@ function fecharModalLancamento() { document.getElementById('modal-lancamento').c
 function alternarOrigemDestinoModal(t) { document.getElementById('container-selecao-coluna').style.display = t === 'ENTRADA' ? 'none' : 'block'; }
 function toggleContainerCategoriasModal() { document.getElementById('md-container-chips').classList.toggle('hidden'); }
 
+// ==============================================================================
+// MODAIS (TRANSAÇÃO MANUAL) E CHIPS OTIMIZADOS
+// ==============================================================================
 function renderizarChipsModal() {
     const cont = document.getElementById('md-container-chips'); 
     cont.innerHTML = '';
@@ -867,7 +866,7 @@ async function salvarLancamentoModal() {
         await salvarConfiguracoesNaNuvem();
     }
 
-    const payload = { user_id: usuarioAtual.id, descricao: desc, nota: nota, valor: valor, tipo: tipo, coluna: coluna, categorias: [...modalCategoriasSelecionadas], membro: membro, data: dataTransacao, mes: mesTransacao };
+    const payload = { user_id: usuarioAtual.id, descricao: desc, nota: nota, valor: valor, tipo: tipo, coluna: coluna, categories: [...modalCategoriasSelecionadas], categorias: [...modalCategoriasSelecionadas], membro: membro, data: dataTransacao, mes: mesTransacao };
 
     if(editandoId) { 
         const { error } = await supabaseClient.from('lancamentos').update(payload).eq('id', editandoId);
@@ -993,6 +992,9 @@ async function processarImportacao(conteudo, nomeArq, funcaoExtrair) {
     } else { UI.showToast("Nenhuma transação válida lida.", "error"); }
 }
 
+// ==============================================================================
+// MOTORES DE LEITURA COM FILTRO ANTI-DUPLICAÇÃO E DETECÇÃO DE IMPOSTOS
+// ==============================================================================
 function processarMotorOFX(texto, colDestino) {
     let novosLancamentos = []; const blocosTransacionais = texto.split(/<STMTTRN>/i);
     for (let i = 1; i < blocosTransacionais.length; i++) {
@@ -1006,8 +1008,14 @@ function processarMotorOFX(texto, colDestino) {
             let val = parseFloat(valorMatch[1]); let desc = memoMatch[1].trim(); if (isNaN(val) || val === 0) continue; let tipo = "SAÍDA";
             if (val < 0) { tipo = "SAÍDA"; val = Math.abs(val); } else { tipo = "ENTRADA"; }
             
-            let cat = "Outros";
             let descLower = desc.toLowerCase();
+            
+            // 🛡️ FILTRO ANTI-DUPLICAÇÃO: Ignora transferência interna de pagamento de fatura
+            if (descLower.includes("pagamento") || descLower.includes("pagto") || descLower.includes("comprovante") || descLower.includes("liquidação") || descLower.includes("efetuado")) {
+                continue;
+            }
+            
+            let cat = "Outros";
             if (descLower.includes('parc') || descLower.includes('parcela') || /\d{1,2}\/\d{1,2}/.test(descLower)) {
                 cat = "Parcelamentos";
             } else {
@@ -1016,7 +1024,7 @@ function processarMotorOFX(texto, colDestino) {
                 }
             }
 
-            novosLancamentos.push({ user_id: usuarioAtual.id, descricao: UI.escapeHTML(desc), nota: "", valor: val, tipo, coluna: tipo === "ENTRADA" ? "ENTRADAS" : colDestino, categorias: [cat], membro: "Pessoal", mes: mesStr, data: dataStr });
+            novosLancamentos.push({ user_id: usuarioAtual.id, descricao: UI.escapeHTML(desc), nota: "", valor: val, tipo, coluna: tipo === "ENTRADA" ? "ENTRADAS" : colDestino, categories: [cat], categorias: [cat], membro: "Pessoal", mes: mesStr, data: dataStr });
         }
     } return novosLancamentos;
 }
@@ -1040,6 +1048,13 @@ function processarTextoRegex(texto, colDestino) {
         
         if (Number.isNaN(val) || val === 0 || desc.length < 3 || desc.toUpperCase().includes("TOTAL") || desc.toUpperCase().includes("SALDO ANTERIOR")) continue;
         
+        let descLower = desc.toLowerCase();
+        
+        // 🛡️ FILTRO ANTI-DUPLICAÇÃO: Ignora transferência interna de pagamento de fatura
+        if (descLower.includes("pagamento") || descLower.includes("pagto") || descLower.includes("comprovante") || descLower.includes("liquidação") || descLower.includes("efetuado")) {
+            continue;
+        }
+
         let [dia, mes] = dataOriginal.split('/');
         let dataStr = `${anoAtual}-${mes}-${dia}`;
         let mesStr = `${anoAtual}-${mes}`;
@@ -1048,8 +1063,6 @@ function processarTextoRegex(texto, colDestino) {
         val = Math.abs(val);
         
         let cat = "Outros";
-        let descLower = desc.toLowerCase();
-        
         if (descLower.includes('parc') || descLower.includes('parcela') || /\d{1,2}\/\d{1,2}/.test(descLower)) {
             cat = "Parcelamentos";
         } else {
@@ -1068,6 +1081,7 @@ function processarTextoRegex(texto, colDestino) {
             valor: Number(val.toFixed(2)),
             tipo: tipo,
             coluna: tipo === "ENTRADA" ? "ENTRADAS" : colDestino,
+            categories: [cat],
             categorias: [cat],
             membro: "Pessoal",
             mes: mesStr,
@@ -1170,7 +1184,6 @@ function processarGraficos(dados) {
     const mapa = {}; let tot = 0;
     
     dados.filter(l => l.tipo === "SAÍDA").forEach(i => {
-        // 🚀 TRAVA DE SEGURANÇA: Se a tag da compra não existe mais, ela vira "Outros" para não sumir do gráfico
         let tags = Array.isArray(i.categorias) ? i.categorias : [i.categorias || "Outros"];
         tags = tags.map(t => categorias.includes(t) ? t : "Outros");
 
