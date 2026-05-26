@@ -874,12 +874,21 @@ function dispararProcessamentoCanal(input, canal) {
 // Helper de envio seguro em lote
 async function enviarLoteSupabase(transacoesFinal) {
     if(transacoesFinal.length > 0) {
-        await supabaseClient.from('lancamentos').insert(transacoesFinal);
-        fecharModalImportador(); 
-        await carregarConfiguracoesEDadosDoSupabase();
-        UI.showToast(`${transacoesFinal.length} lançamentos importados com sucesso!`);
+        UI.showToast(`Enviando ${transacoesFinal.length} lançamentos para o banco...`, "success");
+        
+        // AWAIT CRÍTICO: Esperamos a resposta real do servidor
+        const { data, error } = await supabaseClient.from('lancamentos').insert(transacoesFinal);
+        
+        if (error) {
+            console.error("ERRO DETALHADO DO SUPABASE:", error);
+            UI.showToast("Erro ao gravar: " + error.message, "error");
+        } else {
+            fecharModalImportador(); 
+            await carregarConfiguracoesEDadosDoSupabase();
+            UI.showToast("Importado com êxito e salvo na nuvem!", "success");
+        }
     } else {
-        UI.showToast("Nenhum dado válido extraído. Verifique o arquivo.", "error");
+        UI.showToast("Nenhum dado válido extraído.", "error");
     }
 }
 
