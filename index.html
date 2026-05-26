@@ -863,7 +863,6 @@ async function salvarLancamentoModal() {
         await salvarConfiguracoesNaNuvem();
     }
 
-    // CORRIGIDO: Removida a propriedade 'categories' que causava erro 400 Bad Request
     const payload = { user_id: usuarioAtual.id, descricao: desc, nota: nota, valor: valor, tipo: tipo, coluna: coluna, categorias: [...modalCategoriasSelecionadas], membro: membro, data: dataTransacao, mes: mesTransacao };
 
     if(editandoId) { 
@@ -1025,23 +1024,28 @@ function processarMotorOFX(texto, colDestino) {
                 }
             }
 
-            // CORRIGIDO: Removida a propriedade 'categories'
             novosLancamentos.push({ user_id: usuarioAtual.id, descricao: UI.escapeHTML(desc), nota: "", valor: val, tipo, coluna: tipo === "ENTRADA" ? "ENTRADAS" : colDestino, categorias: [cat], membro: "Pessoal", mes: mesStr, data: dataStr });
         }
     } return novosLancamentos;
 }
 
+// ==============================================================================
+// MOTOR DE LEITURA TEXTUAL CORRIGIDO (toUpperCase) E ADAPTADO LRB
+// ==============================================================================
 function processarTextoRegex(texto, colDestino) {
     let novosLancamentos = [];
     const textoLimpo = texto.replace(/\s+/g, ' ');
     const anoAtual = new Date().getFullYear();
     const mesAtual = new Date().toISOString().substring(0, 7);
     const dataAtual = new Date().toISOString().split('T')[0];
+    
+    // CORRIGIDO: toUpperCase() com letra maiúscula prevenindo a falha do motor
+    const textoMaiusculo = textoLimpo.toUpperCase();
 
     // ==========================================
     // CÉREBRO 1: HOLERITES & COMPROVANTES SALARIAIS
     // ==========================================
-    if (textoLimpo.toUpperCase().includes("FOLHA MENSAL") || textoLimpo.toUpperCase().includes("RECIBO DE PAGAMENTO") || textoLimpo.toUpperCase().includes("SALÁRIO")) {
+    if (textoMaiusculo.includes("FOLHA MENSAL") || textoMaiusculo.includes("RECIBO DE PAGAMENTO") || textoMaiusculo.includes("SALÁRIO")) {
         
         const padroesHolerite = [
             { regex: /DIAS NORMAIS\s+(?:\d{1,3}[:,]\d{2})\s+([\d.,]+)/i, desc: "Salário Base (Dias Normais)", tipo: "ENTRADA", cat: "Reserva & Investimentos" },
@@ -1059,7 +1063,6 @@ function processarTextoRegex(texto, colDestino) {
                 let val = parseFloat(valStr);
                 
                 if (!Number.isNaN(val) && val > 0) {
-                    // CORRIGIDO: Removida a propriedade 'categories'
                     novosLancamentos.push({
                         user_id: usuarioAtual.id,
                         descricao: UI.escapeHTML(p.desc),
@@ -1113,7 +1116,6 @@ function processarTextoRegex(texto, colDestino) {
         if (descLower.includes('parc') || descLower.includes('parcela') || /\d{1,2}\/\d{1,2}/.test(descLower)) cat = "Parcelamentos";
         else { for (const [k, p] of Object.entries(DICIONARIO_CATEGORIAS)) { if (p.some(pal => descLower.includes(pal))) { cat = k; break; } } }
 
-        // CORRIGIDO: Removida a propriedade 'categories'
         novosLancamentos.push({
             user_id: usuarioAtual.id, descricao: UI.escapeHTML(desc), nota: "", valor: Number(val.toFixed(2)), tipo: tipo, coluna: tipo === "ENTRADA" ? "ENTRADAS" : colDestino, categorias: [cat], membro: "Pessoal", mes: mesStr, data: dataStr
         }); 
@@ -1122,7 +1124,7 @@ function processarTextoRegex(texto, colDestino) {
     if (novosLancamentos.length > 0) return novosLancamentos;
 
     // ==========================================
-    // CÉREBRO 3: FATURA BRADESCO / ITAÚ / BB (Ex: 10/04 NOME 50,00)
+    // CÉREBRO 3: FATURA BRADESCO / ITAÚ / BB / PAN (Ex: 10/04 NOME 50,00)
     // ==========================================
     const regexFatura = /(\d{2}\/\d{2})\s+(.+?)\s+(-?\d{1,3}(?:\.\d{3})*[.,]\d{2})(?=\s+\d{2}\/\d{2}|\s+Total|\s+Encargos|\s*$)/gi;
     let m;
@@ -1152,7 +1154,6 @@ function processarTextoRegex(texto, colDestino) {
         if (descLower.includes('parc') || descLower.includes('parcela') || /\d{1,2}\/\d{1,2}/.test(descLower)) cat = "Parcelamentos";
         else { for (const [k, p] of Object.entries(DICIONARIO_CATEGORIAS)) { if (p.some(pal => descLower.includes(pal))) { cat = k; break; } } }
 
-        // CORRIGIDO: Removida a propriedade 'categories'
         novosLancamentos.push({
             user_id: usuarioAtual.id, descricao: UI.escapeHTML(desc), nota: "", valor: Number(val.toFixed(2)), tipo: tipo, coluna: tipo === "ENTRADA" ? "ENTRADAS" : colDestino, categorias: [cat], membro: "Pessoal", mes: mesStr, data: dataStr
         }); 
