@@ -10,7 +10,7 @@
     
     <title>Kakebo - Distribuído por LRB</title>
     
-    <script src="https://cdn.jsdelivr.net/npm/tailwindcss-cdn@3.4.10/tailwindcss.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
@@ -492,9 +492,6 @@ function obterCorTextoContraste(hexcolor) {
     return (yiq >= 135) ? '#1e293b' : '#ffffff';
 }
 
-// ==============================================================================
-// MAPEAMENTO INTELIGENTE E VARIÁVEIS GLOBAIS
-// ==============================================================================
 let colunasAtivas = ["ENTRADAS"];
 let membrosFamilia = ["Pessoal"];
 let membroFiltroAtual = "TODOS";
@@ -1018,37 +1015,36 @@ function processarMotorOFX(texto, colDestino) {
     } return novosLancamentos;
 }
 
-// 🚀 REFAZENDO O REGEX E O MOTOR DO PDF PARA COPIAR LINHAS DO BRADESCO PERFEITAMENTE
+// 🚀 CÉREBRO DE IA APLICADO AO PDF (Corrigido para ler descrições numéricas do Bradesco)
 function processarTextoRegex(texto, colDestino) {
     let novosLancamentos = [];
     const textoLimpo = texto.replace(/\s+/g, ' ');
     
-    // Expressão regular desenvolvida especificamente para faturas em PDF brasileiras (Bradesco)
-    const regexFatura = /(\d{2}\/\d{2})\s+([\D]+?)\s+(-?[\d.]+?,\d{2})(?=\s+\d{2}\/\d{2}|\s+Total|\s+Encargos|\s*$)/g;
+    // Expressão regular robusta que permite números nas descrições e lê decimais com vírgula ou ponto
+    const regexFatura = /(\d{2}\/\d{2})\s+(.+?)\s+(-?\d{1,3}(?:\.\d{3})*[.,]\d{2})(?=\s+\d{2}\/\d{2}|\s+Total|\s+Encargos|\s*$)/gi;
     let m;
     const anoAtual = new Date().getFullYear();
     
     while ((m = regexFatura.exec(textoLimpo)) !== null) {
         let dataOriginal = m[1];
         let desc = m[2].trim();
-        let valorOriginal = m[3];
+        let valorOriginal = m[3].trim();
         
-        // Trata strings de valores negativos e pontuações do padrão BR
-        let valorLimpo = valorOriginal.replace(/\./g, '').replace(',', '.');
-        let val = parseFloat(valorLimpo);
+        // Trata strings de valores separando de forma exata os inteiros e os centavos
+        let centavos = valorOriginal.slice(-2);
+        let inteiros = valorOriginal.slice(0, -3).replace(/[.,]/g, '');
+        let val = parseFloat(inteiros + '.' + centavos);
         
-        // Validações de segurança para evitar lixo do PDF
-        if (Number.isNaN(val) || val === 0 || desc.length < 3 || desc.includes("TOTAL") || desc.includes("SALDO ANTERIOR")) continue;
+        // Regras de segurança (Ignora resumos de fatura)
+        if (Number.isNaN(val) || val === 0 || desc.length < 3 || desc.toUpperCase().includes("TOTAL") || desc.toUpperCase().includes("SALDO ANTERIOR")) continue;
         
         let [dia, mes] = dataOriginal.split('/');
         let dataStr = `${anoAtual}-${mes}-${dia}`;
         let mesStr = `${anoAtual}-${mes}`;
         
-        // Define se é Entrada ou Saída com base no sinal do extrato do cartão
         let tipo = val < 0 ? "ENTRADA" : "SAÍDA";
         val = Math.abs(val);
         
-        // 🧠 Cérebro de IA aplicado para organizar e categorizar
         let cat = "Outros";
         let descLower = desc.toLowerCase();
         
