@@ -310,7 +310,7 @@
             <div id="conteudo-acoes" class="p-5 flex flex-col sm:flex-row items-center justify-between gap-4 transition-all">
                 <div class="grid grid-cols-2 sm:flex w-full gap-3">
                     <button onclick="abrirModalLancamento()" class="btn-primary px-4 py-2 text-sm shadow-sm">➕ Nova Transação</button>
-                    <button onclick="abrirModalImportador()" class="btn-secondary px-4 py-2 text-sm shadow-sm">📥 Importar OFX/PDF</button>
+                    <button onclick="abrirModalImportador()" class="btn-secondary px-4 py-2 text-sm shadow-sm">📥 Importar (Holerite/OFX/PDF)</button>
                     <button onclick="adicionarColunaDespesa()" class="btn-secondary px-4 py-2 text-sm shadow-sm">🏦 Nova Conta</button>
                     <button onclick="zerarBaseDeDados()" class="bg-red-500/10 text-red-500 border border-red-500/20 px-4 py-2 text-sm rounded-lg shadow-sm font-bold hover:bg-red-500/20 transition">🧹 Zerar Base</button>
                 </div>
@@ -395,7 +395,7 @@
     <div id="modal-importador" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm">
         <div class="mobile-card p-6 w-full max-w-lg flex flex-col gap-4">
             <h3 class="text-xl font-bold">Importar Arquivo (Nuvem)</h3>
-            <p class="text-sm" style="color: var(--texto-mutado)">Processa sua fatura localmente e envia de forma segura para seu banco de dados Supabase.</p>
+            <p class="text-sm" style="color: var(--texto-mutado)">Processa seu Holerite ou Fatura e envia de forma segura para a nuvem.</p>
             
             <div>
                 <label class="block text-xs font-bold mb-1" style="color: var(--texto-mutado)">Conta Destino</label>
@@ -810,9 +810,6 @@ function fecharModalLancamento() { document.getElementById('modal-lancamento').c
 function alternarOrigemDestinoModal(t) { document.getElementById('container-selecao-coluna').style.display = t === 'ENTRADA' ? 'none' : 'block'; }
 function toggleContainerCategoriasModal() { document.getElementById('md-container-chips').classList.toggle('hidden'); }
 
-// ==============================================================================
-// MODAIS (TRANSAÇÃO MANUAL) E CHIPS OTIMIZADOS
-// ==============================================================================
 function renderizarChipsModal() {
     const cont = document.getElementById('md-container-chips'); 
     cont.innerHTML = '';
@@ -993,7 +990,7 @@ async function processarImportacao(conteudo, nomeArq, funcaoExtrair) {
 }
 
 // ==============================================================================
-// MOTORES DE LEITURA COM FILTRO ANTI-DUPLICAÇÃO E DETECÇÃO DE IMPOSTOS
+// MOTOR TRIPLO (HOLERITE + NUBANK + BRADESCO) COM FILTRO ANTI-DUPLICAÇÃO
 // ==============================================================================
 function processarMotorOFX(texto, colDestino) {
     let novosLancamentos = []; const blocosTransacionais = texto.split(/<STMTTRN>/i);
@@ -1010,9 +1007,9 @@ function processarMotorOFX(texto, colDestino) {
             
             let descLower = desc.toLowerCase();
             
-            // 🛡️ FILTRO ANTI-DUPLICAÇÃO: Ignora transferência interna de pagamento de fatura
+            // 🛡️ Filtro Anti-Duplicação: Ignora transferências internas de pagamentos de faturas
             if (descLower.includes("pagamento") || descLower.includes("pagto") || descLower.includes("comprovante") || descLower.includes("liquidação") || descLower.includes("efetuado")) {
-                continue;
+                continue; 
             }
             
             let cat = "Outros";
@@ -1032,10 +1029,98 @@ function processarMotorOFX(texto, colDestino) {
 function processarTextoRegex(texto, colDestino) {
     let novosLancamentos = [];
     const textoLimpo = texto.replace(/\s+/g, ' ');
+    const anoAtual = new Date().getFullYear();
+    const mesAtual = new Date().toISOString().substring(0, 7);
+    const dataAtual = new Date().toISOString().split('T')[0];
+
+    // ==========================================
+    // CÉREBRO 1: HOLERITES & COMPROVANTES SALARIAIS
+    // ==========================================
+    if (textoLimpo.toUpperCase().includes("FOLHA MENSAL") || textoLimpo.toUpperCase().includes("RECIBO DE PAGAMENTO") || textoLimpo.toUpperCase().includes("SALÁRIO")) {
+        
+        const padroesHolerite = [
+            { regex: /DIAS NORMAIS\s+(?:\d{1,3}[:,]\d{2})\s+([\d.,]+)/i, desc: "Salário Base (Dias Normais)", tipo: "ENTRADA", cat: "Reserva & Investimentos" },
+            { regex: /HORAS EXTRAS.*?\s+(?:\d{1,3}[:,]\d{2})\s+([\d.,]+)/i, desc: "Horas Extras", tipo: "ENTRADA", cat: "Outros" },
+            { regex: /REFLEXO EXTRAS.*?\s+(?:\d{1,3}[:,]\d{2})\s+([\d.,]+)/i, desc: "Reflexo Horas Extras", tipo: "ENTRADA", cat: "Outros" },
+            { regex: /VALE ALIMENTACAO.*?\s+(?:\d{1,3}[:,]\d{2})\s+(?:[\d.,]+\s+)?([\d.,]+)/i, desc: "Vale Alimentação (Desconto)", tipo: "SAÍDA", cat: "Mercado & Essenciais" },
+            { regex: /N\.?S\.?S.*?\s+(?:\d{1,3}[:,]\d{2})\s+(?:[\d.,]+\s+)?([\d.,]+)/i, desc: "INSS", tipo: "SAÍDA", cat: "Impostos & Taxas" },
+            { regex: /R\.?R\.?F.*?\s+(?:\d{1,3}[:,]\d{2})\s+(?:[\d.,]+\s+)?([\d.,]+)/i, desc: "IRRF", tipo: "SAÍDA", cat: "Impostos & Taxas" }
+        ];
+
+        padroesHolerite.forEach(p => {
+            let m = p.regex.exec(textoLimpo);
+            if (m && m[1]) {
+                let valStr = m[1].replace(/\./g, '').replace(',', '.');
+                let val = parseFloat(valStr);
+                
+                if (!Number.isNaN(val) && val > 0) {
+                    novosLancamentos.push({
+                        user_id: usuarioAtual.id,
+                        descricao: UI.escapeHTML(p.desc),
+                        nota: "Importado via Holerite",
+                        valor: Number(val.toFixed(2)),
+                        tipo: p.tipo,
+                        coluna: p.tipo === "ENTRADA" ? "ENTRADAS" : colDestino,
+                        categorias: [p.cat],
+                        categories: [p.cat],
+                        membro: "Pessoal",
+                        mes: mesAtual,
+                        data: dataAtual
+                    });
+                }
+            }
+        });
+        
+        if (novosLancamentos.length > 0) return novosLancamentos;
+    }
+
+    // ==========================================
+    // CÉREBRO 2: FATURA NUBANK (Ex: 10 MAI NOME 50,00)
+    // ==========================================
+    const regexNubank = /(\d{2}\s+[A-Z]{3})\s+(.+?)\s+(-?\d{1,3}(?:\.\d{3})*[.,]\d{2})(?=\s+\d{2}\s+[A-Z]{3}|\s+Total|\s*$)/gi;
+    const mesesAbrev = { "JAN": "01", "FEV": "02", "MAR": "03", "ABR": "04", "MAI": "05", "JUN": "06", "JUL": "07", "AGO": "08", "SET": "09", "OUT": "10", "NOV": "11", "DEZ": "12" };
+    let mN;
     
+    while ((mN = regexNubank.exec(textoLimpo)) !== null) {
+        let dataOriginal = mN[1];
+        let desc = mN[2].trim();
+        let valorOriginal = mN[3].trim();
+        
+        let centavos = valorOriginal.slice(-2);
+        let inteiros = valorOriginal.slice(0, -3).replace(/[.,]/g, '');
+        let val = parseFloat(inteiros + '.' + centavos);
+        
+        if (Number.isNaN(val) || val === 0 || desc.length < 3 || desc.toUpperCase().includes("TOTAL")) continue;
+        
+        let descLower = desc.toLowerCase();
+        // 🛡️ Filtro Anti-Duplicação
+        if (descLower.includes("pagamento") || descLower.includes("pagto") || descLower.includes("comprovante")) continue;
+
+        let partesData = dataOriginal.split(/\s+/);
+        let dia = partesData[0].padStart(2, '0');
+        let mesNum = mesesAbrev[partesData[1].toUpperCase()] || "01";
+
+        let dataStr = `${anoAtual}-${mesNum}-${dia}`;
+        let mesStr = `${anoAtual}-${mesNum}`;
+        let tipo = val < 0 ? "ENTRADA" : "SAÍDA";
+        val = Math.abs(val);
+
+        let cat = "Outros";
+        if (descLower.includes('parc') || descLower.includes('parcela') || /\d{1,2}\/\d{1,2}/.test(descLower)) cat = "Parcelamentos";
+        else { for (const [k, p] of Object.entries(DICIONARIO_CATEGORIAS)) { if (p.some(pal => descLower.includes(pal))) { cat = k; break; } } }
+
+        novosLancamentos.push({
+            user_id: usuarioAtual.id, descricao: UI.escapeHTML(desc), nota: "", valor: Number(val.toFixed(2)), tipo: tipo, coluna: tipo === "ENTRADA" ? "ENTRADAS" : colDestino, categorias: [cat], categories: [cat], membro: "Pessoal", mes: mesStr, data: dataStr
+        }); 
+    }
+    
+    if (novosLancamentos.length > 0) return novosLancamentos;
+
+    // ==========================================
+    // CÉREBRO 3: FATURA BRADESCO / ITAÚ / BB (Ex: 10/04 NOME 50,00)
+    // ==========================================
     const regexFatura = /(\d{2}\/\d{2})\s+(.+?)\s+(-?\d{1,3}(?:\.\d{3})*[.,]\d{2})(?=\s+\d{2}\/\d{2}|\s+Total|\s+Encargos|\s*$)/gi;
     let m;
-    const anoAtual = new Date().getFullYear();
     
     while ((m = regexFatura.exec(textoLimpo)) !== null) {
         let dataOriginal = m[1];
@@ -1049,11 +1134,8 @@ function processarTextoRegex(texto, colDestino) {
         if (Number.isNaN(val) || val === 0 || desc.length < 3 || desc.toUpperCase().includes("TOTAL") || desc.toUpperCase().includes("SALDO ANTERIOR")) continue;
         
         let descLower = desc.toLowerCase();
-        
-        // 🛡️ FILTRO ANTI-DUPLICAÇÃO: Ignora transferência interna de pagamento de fatura
-        if (descLower.includes("pagamento") || descLower.includes("pagto") || descLower.includes("comprovante") || descLower.includes("liquidação") || descLower.includes("efetuado")) {
-            continue;
-        }
+        // 🛡️ Filtro Anti-Duplicação
+        if (descLower.includes("pagamento") || descLower.includes("pagto") || descLower.includes("comprovante")) continue;
 
         let [dia, mes] = dataOriginal.split('/');
         let dataStr = `${anoAtual}-${mes}-${dia}`;
@@ -1063,31 +1145,14 @@ function processarTextoRegex(texto, colDestino) {
         val = Math.abs(val);
         
         let cat = "Outros";
-        if (descLower.includes('parc') || descLower.includes('parcela') || /\d{1,2}\/\d{1,2}/.test(descLower)) {
-            cat = "Parcelamentos";
-        } else {
-            for (const [k, p] of Object.entries(DICIONARIO_CATEGORIAS)) {
-                if (p.some(pal => descLower.includes(pal))) { 
-                    cat = k; 
-                    break; 
-                }
-            }
-        }
+        if (descLower.includes('parc') || descLower.includes('parcela') || /\d{1,2}\/\d{1,2}/.test(descLower)) cat = "Parcelamentos";
+        else { for (const [k, p] of Object.entries(DICIONARIO_CATEGORIAS)) { if (p.some(pal => descLower.includes(pal))) { cat = k; break; } } }
 
         novosLancamentos.push({
-            user_id: usuarioAtual.id,
-            descricao: UI.escapeHTML(desc),
-            nota: "",
-            valor: Number(val.toFixed(2)),
-            tipo: tipo,
-            coluna: tipo === "ENTRADA" ? "ENTRADAS" : colDestino,
-            categories: [cat],
-            categorias: [cat],
-            membro: "Pessoal",
-            mes: mesStr,
-            data: dataStr
+            user_id: usuarioAtual.id, descricao: UI.escapeHTML(desc), nota: "", valor: Number(val.toFixed(2)), tipo: tipo, coluna: tipo === "ENTRADA" ? "ENTRADAS" : colDestino, categorias: [cat], categories: [cat], membro: "Pessoal", mes: mesStr, data: dataStr
         }); 
     }
+    
     return novosLancamentos;
 }
 
