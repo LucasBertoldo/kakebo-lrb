@@ -638,8 +638,10 @@ async function carregarConfiguracoesEDadosDoSupabase() {
 
     if (config) {
         colunasAtivas = config.colunas_ativas || ["ENTRADAS"];
+        
+        // 🚀 CÉREBRO DE MESCLAGEM: Junta as categorias do banco com as novas do app
         if (config.categorias && config.categorias.length > 0) {
-            categorias = config.categorias;
+            categorias = Array.from(new Set([...categorias, ...config.categorias]));
             filtrosCategoriasAtivos = [...categorias];
             
             categorias.forEach(c => {
@@ -647,7 +649,11 @@ async function carregarConfiguracoesEDadosDoSupabase() {
                 for (const g in mapeamentoCategorias) { if (mapeamentoCategorias[g].includes(c)) { found = true; break; } }
                 if (!found) mapeamentoCategorias["OUTROS"].push(c);
             });
+            
+            // Força a atualização no banco para garantir que as categorias não se percam
+            salvarConfiguracoesNaNuvem();
         }
+        
         membrosFamilia = config.membros || ["Pessoal"];
     }
 
@@ -1015,12 +1021,10 @@ function processarMotorOFX(texto, colDestino) {
     } return novosLancamentos;
 }
 
-// 🚀 CÉREBRO DE IA APLICADO AO PDF (Corrigido para ler descrições numéricas do Bradesco)
 function processarTextoRegex(texto, colDestino) {
     let novosLancamentos = [];
     const textoLimpo = texto.replace(/\s+/g, ' ');
     
-    // Expressão regular robusta que permite números nas descrições e lê decimais com vírgula ou ponto
     const regexFatura = /(\d{2}\/\d{2})\s+(.+?)\s+(-?\d{1,3}(?:\.\d{3})*[.,]\d{2})(?=\s+\d{2}\/\d{2}|\s+Total|\s+Encargos|\s*$)/gi;
     let m;
     const anoAtual = new Date().getFullYear();
@@ -1030,12 +1034,10 @@ function processarTextoRegex(texto, colDestino) {
         let desc = m[2].trim();
         let valorOriginal = m[3].trim();
         
-        // Trata strings de valores separando de forma exata os inteiros e os centavos
         let centavos = valorOriginal.slice(-2);
         let inteiros = valorOriginal.slice(0, -3).replace(/[.,]/g, '');
         let val = parseFloat(inteiros + '.' + centavos);
         
-        // Regras de segurança (Ignora resumos de fatura)
         if (Number.isNaN(val) || val === 0 || desc.length < 3 || desc.toUpperCase().includes("TOTAL") || desc.toUpperCase().includes("SALDO ANTERIOR")) continue;
         
         let [dia, mes] = dataOriginal.split('/');
@@ -1168,7 +1170,10 @@ function processarGraficos(dados) {
     const mapa = {}; let tot = 0;
     
     dados.filter(l => l.tipo === "SAÍDA").forEach(i => {
-        const tags = Array.isArray(i.categorias) ? i.categorias : [i.categorias || "Outros"];
+        // 🚀 TRAVA DE SEGURANÇA: Se a tag da compra não existe mais, ela vira "Outros" para não sumir do gráfico
+        let tags = Array.isArray(i.categorias) ? i.categorias : [i.categorias || "Outros"];
+        tags = tags.map(t => categorias.includes(t) ? t : "Outros");
+
         const tagsAtivas = tags.filter(c => filtrosCategoriasAtivos.includes(c));
         
         if (tagsAtivas.length > 0) {
