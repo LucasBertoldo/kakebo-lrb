@@ -141,7 +141,7 @@
             border: 1px solid transparent;
             transition: all 0.2s;
         }
-        .chip-inativo { background-color: transparent; color: var(--texto-mutado); border-color: var(--borda); }
+        .chip-inativo { background-color: transparent; color: var(--texto-mutated-kanban); border-color: var(--borda); }
         .chip-ativo { background-color: var(--cor-acc); color: var(--cor-acc-txt); border-color: var(--cor-acc); }
         
         .kanban-card-base {
@@ -303,16 +303,16 @@
             <div class="p-4 border-b flex justify-between items-center" style="border-color: var(--borda);">
                 <div>
                     <h3 class="font-bold text-lg leading-tight">Ações Rápidas</h3>
-                    <p class="text-xs font-medium" style="color: var(--texto-mutado)">Integração nativa com Supabase</p>
+                    <p class="text-xs font-medium" style="color: var(--texto-mutado)">Gerenciamento integrado com Supabase</p>
                 </div>
                 <button onclick="toggleSecao('conteudo-acoes', this)" class="btn-secondary px-3 py-1 text-sm rounded-lg min-h-[30px] shadow-sm">➖</button>
             </div>
             <div id="conteudo-acoes" class="p-5 flex flex-col sm:flex-row items-center justify-between gap-4 transition-all">
                 <div class="grid grid-cols-2 sm:flex w-full gap-3">
                     <button onclick="abrirModalLancamento()" class="btn-primary px-4 py-2 text-sm shadow-sm">➕ Nova Transação</button>
-                    <button onclick="abrirModalImportador()" class="btn-secondary px-4 py-2 text-sm shadow-sm">📥 Importar (Holerite/OFX/PDF)</button>
-                    <button onclick="adicionarColunaDespesa()" class="btn-secondary px-4 py-2 text-sm shadow-sm">🏦 Nova Conta</button>
-                    <button onclick="zerarBaseDeDados()" class="bg-red-500/10 text-red-500 border border-red-500/20 px-4 py-2 text-sm rounded-lg shadow-sm font-bold hover:bg-red-500/20 transition">🧹 Zerar Base</button>
+                    <button onclick="abrirModalImportador()" class="btn-secondary px-4 py-2 text-sm shadow-sm">📥 Importador Avançado (Dual-Channel)</button>
+                    <button onclick="adicionarColunaDespesa()" class="btn-secondary px-4 py-2 text-sm shadow-sm">🏦 Nova Conta Manual</button>
+                    <button onclick="resetDeFabricaCompleto()" class="bg-red-500 text-white px-4 py-2 text-sm rounded-lg shadow-sm font-bold hover:bg-red-600 transition">🧹 Reset de Fábrica</button>
                 </div>
             </div>
         </div>
@@ -393,26 +393,59 @@
     </div>
 
     <div id="modal-importador" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm">
-        <div class="mobile-card p-6 w-full max-w-lg flex flex-col gap-4">
-            <h3 class="text-xl font-bold">Importar Arquivo (Nuvem)</h3>
-            <p class="text-sm" style="color: var(--texto-mutado)">Processa seu Holerite ou Fatura e envia de forma segura para a nuvem.</p>
-            
-            <div>
-                <label class="block text-xs font-bold mb-1" style="color: var(--texto-mutado)">Conta Destino</label>
-                <select id="imp-coluna"></select>
+        <div class="mobile-card p-6 w-full max-w-2xl flex flex-col gap-4">
+            <div class="flex justify-between items-start border-b pb-2" style="border-color: var(--borda);">
+                <div>
+                    <h3 class="text-xl font-bold">Importador Avançado (Dual-Channel)</h3>
+                    <p class="text-xs" style="color: var(--texto-mutado)">Canais de leitura independentes para evitar poluição e dados cruzados.</p>
+                </div>
+                <button onclick="fecharModalImportador()" class="text-sm font-bold opacity-60 hover:opacity-100">✕</button>
             </div>
-            <div>
-                <label class="block text-xs font-bold mb-1" style="color: var(--texto-mutado)">Membro Responsável</label>
-                <select id="imp-membro"></select>
-                <div class="mt-2 text-[10px] text-blue-400 cursor-pointer hover:underline" onclick="criarNovoMembroViaModal()">+ Criar novo membro</div>
-            </div>
-            <div class="p-6 border-2 border-dashed rounded-xl text-center flex flex-col items-center justify-center gap-3 cursor-pointer transition relative" style="border-color: var(--borda); background-color: var(--badge-bg);">
-                <input type="file" id="imp-arquivo" onchange="detectarEProcessarArquivo(this)" class="opacity-0 absolute inset-0 w-full h-full cursor-pointer" accept=".ofx,.pdf,.txt,.csv">
-                <span class="text-3xl">🤖</span>
-                <p class="text-sm font-bold">Toque para Processar PDF ou OFX</p>
-            </div>
-            <div class="flex justify-end gap-3 pt-4 mt-2">
-                <button onclick="fecharModalImportador()" class="btn-secondary px-6">Cancelar</button>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="p-4 rounded-xl border flex flex-col gap-3" style="background-color: var(--card-bg); border-color: var(--borda);">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xl">💳</span>
+                        <h4 class="font-bold text-sm text-red-500">Canal de Faturas / Cartões</h4>
+                    </div>
+                    <p class="text-[11px] opacity-70">Gera exclusivamente **Despesas (Saídas)**. Filtra pagamentos automáticos de faturas.</p>
+                    
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase mb-1">Membro</label>
+                        <select id="imp-fatura-membro" class="min-h-[38px] text-xs"></select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase mb-1">Destino</label>
+                        <select id="imp-fatura-coluna" class="min-h-[38px] text-xs">
+                            <option value="AUTO">🤖 Auto-Detectar Banco</option>
+                        </select>
+                    </div>
+
+                    <div class="p-4 border border-dashed rounded-lg text-center cursor-pointer relative bg-red-500/5 hover:bg-red-500/10 transition mt-2">
+                        <input type="file" onchange="dispararProcessamentoCanal(this, 'FATURA')" class="opacity-0 absolute inset-0 w-full h-full cursor-pointer" accept=".pdf,.ofx">
+                        <span class="text-lg">📄</span>
+                        <p class="text-xs font-bold mt-1">Carregar Fatura (PDF / OFX)</p>
+                    </div>
+                </div>
+
+                <div class="p-4 rounded-xl border flex flex-col gap-3" style="background-color: var(--card-bg); border-color: var(--borda);">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xl">💰</span>
+                        <h4 class="font-bold text-sm text-emerald-500">Canal de Recebíveis / Renda</h4>
+                    </div>
+                    <p class="text-[11px] opacity-70">Gera exclusivamente **Receitas (Entradas)** na coluna **ENTRADAS**. Ideal para Holerites, PIX e Vendas.</p>
+                    
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase mb-1">Membro</label>
+                        <select id="imp-receita-membro" class="min-h-[38px] text-xs"></select>
+                    </div>
+
+                    <div class="p-4 border border-dashed rounded-lg text-center cursor-pointer relative bg-emerald-500/5 hover:bg-emerald-500/10 transition mt-[68px]">
+                        <input type="file" onchange="dispararProcessamentoCanal(this, 'RECEITA')" class="opacity-0 absolute inset-0 w-full h-full cursor-pointer" accept=".pdf,.txt,.csv">
+                        <span class="text-lg">💼</span>
+                        <p class="text-xs font-bold mt-1">Carregar Holerite / Comprovante</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -422,9 +455,6 @@
 <script>
 window.onerror = function(message, source, lineno, colno, error) {
     console.error("Erro Detectado: ", message);
-    if(message && (message.includes('supabase') || message.includes('SyntaxError') || message.includes('JSON'))) {
-        alert("Ops! O navegador bloqueou a execução. Erro interno: " + message + " na linha " + lineno);
-    }
     return false;
 };
 
@@ -457,40 +487,8 @@ const BANCOS_BRANDING = {
     "SANTANDER": { nome: "Santander", cor: "#EC0000", icon: "🟥", keywords: ["SANTANDER"] },
     "BRADESCO": { nome: "Bradesco", cor: "#CC092F", icon: "🔴", keywords: ["BRADESCO"] },
     "BANCO DO BRASIL": { nome: "Banco do Brasil", cor: "#F8D117", icon: "🟡", keywords: ["BANCO DO BRASIL", "BB"] },
-    "CAIXA": { nome: "Caixa", cor: "#005CA9", icon: "🔵", keywords: ["CAIXA ECONOMICA", "CAIXA ECONÔMICA"] },
-    "INTER": { nome: "Inter", cor: "#FF7A00", icon: "🟧", keywords: ["BANCO INTER", "INTER"] },
-    "C6": { nome: "C6 Bank", cor: "#242424", icon: "⬛", keywords: ["C6 BANK", "C6"] },
-    "PICPAY": { nome: "PicPay", cor: "#11C76F", icon: "🟢", keywords: ["PICPAY"] },
-    "PAN": { nome: "Banco Pan", cor: "#00A1FC", icon: "🟦", keywords: ["BANCO PAN", "PAN"] },
-    "MERCADO PAGO": { nome: "Mercado Pago", cor: "#009EE3", icon: "🤝", keywords: ["MERCADO PAGO"] },
-    "PAGBANK": { nome: "PagBank", cor: "#1BB853", icon: "🍋", keywords: ["PAGSEGURO", "PAGBANK"] },
-    "SICOOB": { nome: "Sicoob", cor: "#003641", icon: "🌲", keywords: ["SICOOB"] },
-    "SICREDI": { nome: "Sicredi", cor: "#008542", icon: "🍀", keywords: ["SICREDI"] }
+    "PAN": { nome: "Banco Pan", cor: "#00A1FC", icon: "🟦", keywords: ["BANCO PAN", "PAN", "PPAN"] }
 };
-
-function detectarBancoArquivo(texto, nomeArquivo) {
-    const txtCompleto = (texto + " " + nomeArquivo).toUpperCase();
-    for (const key in BANCOS_BRANDING) {
-        if (BANCOS_BRANDING[key].keywords.some(kw => {
-            const regex = new RegExp(`(?:^|\\W)${kw}(?:$|\\W)`);
-            return regex.test(txtCompleto);
-        })) {
-            return BANCOS_BRANDING[key];
-        }
-    }
-    return null;
-}
-
-function obterCorTextoContraste(hexcolor) {
-    if (!hexcolor || hexcolor.startsWith('var')) return 'var(--texto-principal)';
-    let hex = hexcolor.replace('#', '');
-    if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
-    const r = parseInt(hex.substring(0, 2), 16);
-    const g = parseInt(hex.substring(2, 4), 16);
-    const b = parseInt(hex.substring(4, 6), 16);
-    const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
-    return (yiq >= 135) ? '#1e293b' : '#ffffff';
-}
 
 let colunasAtivas = ["ENTRADAS"];
 let membrosFamilia = ["Pessoal"];
@@ -504,12 +502,13 @@ let modoCadastro = false;
 let chartPizzaInstance = null, chartLinhaInstance = null;
 let modalCategoriasSelecionadas = []; let editandoId = null;
 
-let categorias = [
+const CATEGORIAS_PADRAO = [
     "Eletrônicos & Hardware", "Assinaturas & Softwares", "Oficina & Manutenção",
     "Moradia & Contas", "Mercado & Essenciais", "Saúde & Bem-estar",
     "Transporte & Veículo", "Alimentação Fora", "Lazer & Entretenimento",
     "Parcelamentos", "Impostos & Taxas", "Reserva & Investimentos", "Outros"
 ];
+let categorias = [...CATEGORIAS_PADRAO];
 let filtrosCategoriasAtivos = [...categorias];
 
 let mapeamentoCategorias = {
@@ -522,16 +521,14 @@ let mapeamentoCategorias = {
 };
 
 const DICIONARIO_CATEGORIAS = {
-    "Mercado & Essenciais": ["supermercado", "supermerkado", "atacadao", "carrefour", "assai", "mercado", "padaria", "farmacia", "drogasil", "pague menos", "atacadista", "hortifruti", "açougue", "compre bem"],
-    "Oficina & Manutenção": ["mecanica", "oficina", "pneu", "oleo", "borracharia", "autocenter", "auto pecas", "motos", "honda", "yamaha", "denteck"],
-    "Transporte & Veículo": ["posto", "shell", "petrobras", "ipiranga", "gasolina", "uber", "99", "ipva", "pedagio", "estacionamento", "sem parar"],
-    "Assinaturas & Softwares": ["netflix", "spotify", "disney", "hbo", "prime", "youtube", "cloud", "aws", "hostinger", "github", "chatgpt", "apple", "google"],
-    "Eletrônicos & Hardware": ["kabum", "pichau", "terabyte", "aliexpress", "mercado livre", "amazon", "hardware", "placa", "memoria", "cooler", "shopee"],
-    "Alimentação Fora": ["restaurante", "bar", "cinema", "ifood", "burger", "mcdonalds", "pizza", "lanchonete", "sorveteria", "delivery", "churrascaria"],
-    "Moradia & Contas": ["celg", "equatorial", "saneago", "agua", "energia", "luz", "condominio", "aluguel", "vivo", "claro", "tim", "internet", "iptu", "iof", "encargos", "saldo anterior"],
-    "Saúde & Bem-estar": ["academia", "smartfit", "bluefit", "consulta", "exame", "hospital", "dentista", "cabelo", "barbearia", "salao"],
-    "Lazer & Entretenimento": ["ingresso", "show", "festa", "clube", "viagem", "hotel", "passagem", "sympla"],
-    "Impostos & Taxas": ["inss", "irrf", "imposto", "taxa", "fgts", "darf", "gps", "deducao", "contribuicao"]
+    "Mercado & Essenciais": ["supermercado", "supermerkado", "atacadao", "carrefour", "assai", "mercado", "padaria", "farmacia", "drogasil", "pague menos", "atacadista"],
+    "Oficina & Manutenção": ["mecanica", "oficina", "pneu", "oleo", "borracharia", "denteck"],
+    "Transporte & Veículo": ["posto", "shell", "petrobras", "ipiranga", "gasolina", "uber", "99", "ipva"],
+    "Assinaturas & Softwares": ["netflix", "spotify", "disney", "youtube", "cloud", "chatgpt", "google"],
+    "Eletrônicos & Hardware": ["kabum", "pichau", "terabyte", "aliexpress", "mercado livre", "amazon", "hardware", "cooler"],
+    "Alimentação Fora": ["restaurante", "bar", "cinema", "ifood", "burger", "mcdonalds", "pizza"],
+    "Moradia & Contas": ["celg", "equatorial", "saneago", "agua", "energia", "luz", "condominio", "aluguel", "vivo", "claro", "tim", "internet"],
+    "Impostos & Taxas": ["inss", "irrf", "imposto", "taxa", "fgts"]
 };
 
 const coresGraficos = {
@@ -581,16 +578,12 @@ function alternarModoAuth() {
 async function executarCadastro() {
     const email = document.getElementById('auth-email').value.trim();
     const password = document.getElementById('auth-pass').value;
-
     if(!email || !password) return UI.showToast("Preencha email e senha", "error");
-    if(password.length < 6) return UI.showToast("A senha deve ter no mínimo 6 caracteres", "error");
-
-    UI.showToast("Criando sua conta...", "success");
+    
+    UI.showToast("Criando conta...", "success");
     const { data, error } = await supabaseClient.auth.signUp({ email, password });
-
-    if (error) return UI.showToast("Erro ao cadastrar: " + error.message, "error");
-    if (data.user && !data.session) return UI.showToast("Conta criada! Confirme seu e-mail para continuar.", "success");
-
+    if (error) return UI.showToast(error.message, "error");
+    
     usuarioAtual = data.user || (data.session ? data.session.user : null);
     if (usuarioAtual) {
         document.getElementById('bloco-auth').style.display = 'none'; 
@@ -602,12 +595,10 @@ async function executarCadastro() {
 async function executarAutenticacao() {
     const email = document.getElementById('auth-email').value.trim();
     const password = document.getElementById('auth-pass').value;
-    
-    if(!email || !password) return UI.showToast("Preencha email e senha", "error");
-    UI.showToast("Conectando ao banco...", "success");
+    if(!email || !password) return UI.showToast("Preencha os campos", "error");
 
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-    if (error) return UI.showToast("Erro ao acessar: " + error.message, "error");
+    if (error) return UI.showToast(error.message, "error");
 
     usuarioAtual = data.user;
     document.getElementById('bloco-auth').style.display = 'none'; 
@@ -618,50 +609,32 @@ async function executarAutenticacao() {
 async function deslogarUsuario() { 
     await supabaseClient.auth.signOut();
     usuarioAtual = null;
-    lancamentos = [];
     document.getElementById('bloco-auth').style.display = 'flex'; 
     document.getElementById('app-principal').classList.add('hidden'); 
 }
 
 async function carregarConfiguracoesEDadosDoSupabase() {
     if (!usuarioAtual) return;
-    UI.showToast("Sincronizando painel...", "success");
+    let { data: config } = await supabaseClient.from('usuario_configuracoes').select('*').maybeSingle();
 
-    let { data: config, error: configError } = await supabaseClient.from('usuario_configuracoes').select('*').maybeSingle();
-
-    if (!config && (!configError || configError.code === 'PGRST116')) {
-        const defaultConfig = {
-            user_id: usuarioAtual.id, colunas_ativas: ["ENTRADAS"], categorias: categorias, membros: ["Pessoal"]
-        };
-        const { data: newConfig, error: insertError } = await supabaseClient.from('usuario_configuracoes').insert([defaultConfig]).select().maybeSingle();
-        if (!insertError && newConfig) config = newConfig;
+    if (!config) {
+        const defaultConfig = { user_id: usuarioAtual.id, colunas_ativas: ["ENTRADAS"], categorias: CATEGORIAS_PADRAO, membros: ["Pessoal"] };
+        const { data: newConfig } = await supabaseClient.from('usuario_configuracoes').insert([defaultConfig]).select().maybeSingle();
+        config = newConfig;
     }
 
     if (config) {
         colunasAtivas = config.colunas_ativas || ["ENTRADAS"];
-        if (config.categorias && config.categorias.length > 0) {
-            categorias = Array.from(new Set([...categorias, ...config.categorias]));
-            filtrosCategoriasAtivos = [...categorias];
-            
-            categorias.forEach(c => {
-                let found = false;
-                for (const g in mapeamentoCategorias) { if (mapeamentoCategorias[g].includes(c)) { found = true; break; } }
-                if (!found) mapeamentoCategorias["OUTROS"].push(c);
-            });
-            salvarConfiguracoesNaNuvem();
-        }
+        categorias = config.categorias || [...CATEGORIAS_PADRAO];
         membrosFamilia = config.membros || ["Pessoal"];
     }
 
     atualizarSeletoresMembros(); 
     renderizarFiltrosChips();
 
-    const { data: transacoes, error: transError } = await supabaseClient.from('lancamentos').select('*').order('data', { ascending: false });
-
-    if (!transError) {
-        lancamentos = transacoes || [];
-        renderizarPainelGeral();
-    }
+    const { data: transacoes } = await supabaseClient.from('lancamentos').select('*').order('data', { ascending: false });
+    lancamentos = transacoes || [];
+    renderizarPainelGeral();
 }
 
 async function salvarConfiguracoesNaNuvem() {
@@ -671,8 +644,8 @@ async function salvarConfiguracoesNaNuvem() {
 
 function toggleSecao(id, btn) {
     const el = document.getElementById(id);
-    if (el.classList.contains('hidden')) { el.classList.remove('hidden'); btn.innerText = '➖'; } 
-    else { el.classList.add('hidden'); btn.innerText = '➕'; }
+    el.classList.toggle('hidden');
+    btn.innerText = el.classList.contains('hidden') ? '➕' : '➖';
 }
 
 function toggleOlhoVisibilidade() {
@@ -706,47 +679,18 @@ async function criarNovoMembro() {
         membrosFamilia.push(val); 
         document.getElementById('input-novo-membro').value = '';
         atualizarSeletoresMembros(); await salvarConfiguracoesNaNuvem();
-        UI.showToast(`Membro adicionado.`); renderizarPainelGeral(); 
-    }
-}
-
-function criarNovoMembroViaModal() {
-    const nome = prompt("Nome do novo membro:");
-    if(nome && !membrosFamilia.includes(nome)) {
-        membrosFamilia.push(nome);
-        salvarConfiguracoesNaNuvem();
-        abrirModalImportador(); 
+        renderizarPainelGeral(); 
     }
 }
 
 function renderizarFiltrosChips() {
-    const container = document.getElementById('lista-chips-filtros'); 
-    container.innerHTML = '';
-    
-    const titulosGrupos = {
-        "CASA": "🏠 Casa & Dia a Dia",
-        "MOBILIDADE": "🚗 Veículo & Mobilidade",
-        "ESTILO_DE_VIDA": "🍿 Estilo de Vida",
-        "TECNOLOGIA": "💻 TI & Eletrônicos",
-        "INVESTIMENTOS": "📈 Financeiro",
-        "OUTROS": "📌 Compras Diversas"
-    };
-
+    const container = document.getElementById('lista-chips-filtros'); container.innerHTML = '';
     Object.entries(mapeamentoCategorias).forEach(([grupo, tags]) => {
-        const tagsAtivas = tags.filter(c => categorias.includes(c));
-        if(tagsAtivas.length === 0) return;
-
-        const chipsHtml = tagsAtivas.map(cat => {
+        const chipsHtml = tags.map(cat => {
             const isActive = filtrosCategoriasAtivos.includes(cat);
             return `<button class="chip-base ${isActive ? 'chip-ativo' : 'chip-inativo'} text-[10px] py-1 px-2" onclick="toggleFiltro('${cat}')">${cat}</button>`;
         }).join('');
-
-        container.innerHTML += `
-            <div class="mb-2">
-                <div class="text-[9px] font-extrabold uppercase mb-1.5 opacity-60 ml-1 tracking-wider" style="color: var(--cor-acc);">${titulosGrupos[grupo] || grupo}</div>
-                <div class="flex flex-wrap gap-1.5">${chipsHtml}</div>
-            </div>
-        `;
+        container.innerHTML += `<div class="mb-2"><div class="text-[9px] font-extrabold uppercase mb-1 opacity-60">${grupo}</div><div class="flex flex-wrap gap-1">${chipsHtml}</div></div>`;
     });
 }
 
@@ -758,14 +702,11 @@ function toggleFiltro(cat) {
 async function criarNovaCategoria() {
     const val = UI.escapeHTML(document.getElementById('input-nova-categoria').value.trim());
     const grupo = document.getElementById('select-grupo-nova-categoria').value;
-    
     if(val && !categorias.includes(val)) { 
         categorias.push(val); filtrosCategoriasAtivos.push(val);
-        if (!mapeamentoCategorias[grupo]) mapeamentoCategorias[grupo] = [];
         mapeamentoCategorias[grupo].push(val);
         document.getElementById('input-nova-categoria').value = ''; 
-        renderizarFiltrosChips(); await salvarConfiguracoesNaNuvem();
-        renderizarPainelGeral(); UI.showToast(`Tag vinculada ao grupo: ${grupo}`);
+        renderizarFiltrosChips(); await salvarConfiguracoesNaNuvem(); renderizarPainelGeral();
     }
 }
 
@@ -776,33 +717,29 @@ function formataValorVisivel(val, pref = "R$ ") {
 
 function abrirModalLancamento(id = null) {
     const colSelect = document.getElementById('md-coluna'); colSelect.innerHTML = '';
-    let hasBankColumns = false;
-    colunasAtivas.forEach(c => { 
-        if(c !== "ENTRADAS") { colSelect.innerHTML += `<option value="${c}">${c}</option>`; hasBankColumns = true; }
-    });
-    if(!hasBankColumns) colSelect.innerHTML = `<option value="OUTROS">OUTROS (Crie uma conta)</option>`;
+    colunasAtivas.forEach(c => { if(c !== "ENTRADAS") colSelect.innerHTML += `<option value="${c}">${c}</option>`; });
+    if(!colSelect.innerHTML) colSelect.innerHTML = `<option value="OUTROS">OUTROS</option>`;
 
     const membSelect = document.getElementById('md-membro'); membSelect.innerHTML = '';
     membrosFamilia.forEach(m => { membSelect.innerHTML += `<option value="${m}">${m}</option>`; });
     
-    const tituloTxt = document.getElementById('modal-titulo-texto'); document.getElementById('md-container-chips').classList.add('hidden');
+    document.getElementById('md-container-chips').classList.add('hidden');
     
     if(id) {
-        editandoId = id; tituloTxt.innerText = "✏️ Editar Compra";
+        editandoId = id;
         const item = lancamentos.find(l => l.id === id); if(!item) return;
         document.getElementById('md-desc').value = item.descricao || ''; document.getElementById('md-nota').value = item.nota || '';
         document.getElementById('md-valor').value = item.valor || ''; document.getElementById('md-tipo').value = item.tipo || 'SAÍDA'; 
-        document.getElementById('md-coluna').value = item.coluna !== 'ENTRADAS' ? item.coluna : (colunasAtivas[1] || 'OUTROS'); 
-        document.getElementById('md-membro').value = item.membro || membrosFamilia[0]; alternarOrigemDestinoModal(item.tipo); 
-        document.getElementById('md-data').value = item.data || new Date().toISOString().split('T')[0];
+        document.getElementById('md-coluna').value = item.coluna; document.getElementById('md-membro').value = item.membro;
+        document.getElementById('md-data').value = item.data;
         modalCategoriasSelecionadas = Array.isArray(item.categorias) ? [...item.categorias] : [item.categorias || "Outros"];
     } else {
-        editandoId = null; tituloTxt.innerText = "➕ Nova Transação";
+        editandoId = null;
         document.getElementById('md-desc').value = ''; document.getElementById('md-nota').value = ''; document.getElementById('md-valor').value = ''; 
-        document.getElementById('md-tipo').value = 'SAÍDA'; alternarOrigemDestinoModal('SAÍDA'); 
-        document.getElementById('md-membro').value = membrosFamilia[0] || "Pessoal"; modalCategoriasSelecionadas = ["Outros"];
-        document.getElementById('md-data').value = new Date().toISOString().split('T')[0];
+        document.getElementById('md-tipo').value = 'SAÍDA'; document.getElementById('md-membro').value = membrosFamilia[0];
+        modalCategoriasSelecionadas = ["Outros"]; document.getElementById('md-data').value = new Date().toISOString().split('T')[0];
     }
+    alternarOrigemDestinoModal(document.getElementById('md-tipo').value);
     renderizarChipsModal(); document.getElementById('modal-lancamento').classList.remove('hidden');
 }
 
@@ -811,24 +748,13 @@ function alternarOrigemDestinoModal(t) { document.getElementById('container-sele
 function toggleContainerCategoriasModal() { document.getElementById('md-container-chips').classList.toggle('hidden'); }
 
 function renderizarChipsModal() {
-    const cont = document.getElementById('md-container-chips'); 
-    cont.innerHTML = '';
-    const titulosGrupos = { "TECNOLOGIA": "💻 Infra & TI", "CASA": "🏠 Casa", "MOBILIDADE": "🚗 Mobilidade", "ESTILO_DE_VIDA": "🍿 Estilo de Vida", "INVESTIMENTOS": "📈 Investimentos", "OUTROS": "📌 Outros" };
-
+    const cont = document.getElementById('md-container-chips'); cont.innerHTML = '';
     Object.entries(mapeamentoCategorias).forEach(([grupo, tags]) => {
-        const tagsAtivas = tags.filter(c => categorias.includes(c));
-        if(!tagsAtivas.length) return;
-
-        const htmlBotoes = tagsAtivas.map(c => {
+        const htmlBotoes = tags.map(c => {
             const isAtv = modalCategoriasSelecionadas.includes(c);
             return `<button type="button" class="chip-base ${isAtv ? 'chip-ativo' : 'chip-inativo'}" onclick="toggleTagModal('${c}')">${c}</button>`;
         }).join('');
-
-        cont.innerHTML += `
-            <div class="w-full mb-3 border-b pb-2 last:border-none" style="border-color: var(--borda);">
-                <h5 class="text-[10px] uppercase font-extrabold tracking-wider mb-2 opacity-80" style="color: var(--cor-acc);">${titulosGrupos[grupo] || grupo}</h5>
-                <div class="flex flex-wrap gap-2">${htmlBotoes}</div>
-            </div>`;
+        cont.innerHTML += `<div class="mb-2"><h5 class="text-[10px] uppercase font-bold mb-1">${grupo}</h5><div class="flex flex-wrap gap-1">${htmlBotoes}</div></div>`;
     });
     document.getElementById('md-txt-qtd-categorias').innerText = modalCategoriasSelecionadas.length;
 }
@@ -840,239 +766,234 @@ window.toggleTagModal = function(c) {
 };
 
 async function salvarLancamentoModal() {
-    if(!usuarioAtual) return UI.showToast("Usuário não autenticado", "error");
-
     const desc = UI.escapeHTML(document.getElementById('md-desc').value.trim()); 
     const nota = UI.escapeHTML(document.getElementById('md-nota').value.trim());
     const valor = parseFloat(document.getElementById('md-valor').value); 
     const tipo = document.getElementById('md-tipo').value; 
     const membro = document.getElementById('md-membro').value; 
-    
-    const dataTransacao = document.getElementById('md-data').value || new Date().toISOString().split('T')[0];
+    const dataTransacao = document.getElementById('md-data').value;
     const mesTransacao = dataTransacao.substring(0, 7);
-    
     let coluna = tipo === 'ENTRADA' ? 'ENTRADAS' : document.getElementById('md-coluna').value;
     
-    if(!desc || isNaN(valor) || valor <= 0) return UI.showToast("Dados inválidos", "error"); 
-    if(modalCategoriasSelecionadas.length === 0) modalCategoriasSelecionadas = ["Outros"];
-    
-    UI.showToast("Salvando na nuvem...", "success");
+    if(!desc || isNaN(valor) || valor <= 0) return UI.showToast("Preencha corretamente", "error");
 
-    if(tipo === 'SAÍDA' && !colunasAtivas.includes(coluna)) {
-        colunasAtivas.push(coluna);
-        await salvarConfiguracoesNaNuvem();
-    }
-
-    const payload = {
-        user_id: usuarioAtual.id,
-        descricao: desc, 
-        nota: nota,
-        valor: valor,
-        tipo: tipo,
-        coluna: coluna,
-        categorias: [...modalCategoriasSelecionadas],
-        membro: membro,
-        data: dataTransacao,
-        mes: mesTransacao
+    const payload = { 
+        user_id: usuarioAtual.id, descricao: desc, nota: nota, valor: valor, tipo: tipo, coluna: coluna, 
+        categorias: [...modalCategoriasSelecionadas], categories: [...modalCategoriasSelecionadas], 
+        membro: membro, data: dataTransacao, mes: mesTransacao 
     };
 
-    if(editandoId) { 
-        const { error } = await supabaseClient.from('lancamentos').update(payload).eq('id', editandoId);
-        if(error) return UI.showToast("Erro ao atualizar", "error");
-    } else { 
-        const { error } = await supabaseClient.from('lancamentos').insert([payload]);
-        if(error) return UI.showToast("Erro ao inserir", "error");
-    }
+    if(editandoId) { await supabaseClient.from('lancamentos').update(payload).eq('id', editandoId); } 
+    else { await supabaseClient.from('lancamentos').insert([payload]); }
     
-    fecharModalLancamento(); 
-    await carregarConfiguracoesEDadosDoSupabase();
-    UI.showToast("Salvo com sucesso!");
+    fecharModalLancamento(); await carregarConfiguracoesEDadosDoSupabase();
 }
 
 async function removerLancamento(id) { 
-    if(confirm("Deseja apagar esta transação do banco de dados?")) { 
-        UI.showToast("Apagando da nuvem...", "success");
-        const { error } = await supabaseClient.from('lancamentos').delete().eq('id', id);
-        if (error) { UI.showToast("Erro ao apagar", "error"); } 
-        else {
-            lancamentos = lancamentos.filter(l => l.id !== id);
-            renderizarPainelGeral(); 
-            UI.showToast("Transação apagada!");
-        }
+    if(confirm("Excluir essa transação?")) { 
+        await supabaseClient.from('lancamentos').delete().eq('id', id);
+        await carregarConfiguracoesEDadosDoSupabase();
     } 
 }
 
 async function adicionarColunaDespesa() { 
-    const n = prompt("Nome da nova conta:"); 
+    const n = prompt("Nome da Conta / Cartão:"); 
     if(n && !colunasAtivas.includes(n.toUpperCase())) { 
-        colunasAtivas.push(n.toUpperCase()); 
-        await salvarConfiguracoesNaNuvem();
-        renderizarPainelGeral(); UI.showToast("Conta criada."); 
+        colunasAtivas.push(n.toUpperCase()); await salvarConfiguracoesNaNuvem(); renderizarPainelGeral(); 
     } 
 }
 
-async function removerColuna(col) { 
-    if(confirm(`Deseja realmente excluir a conta "${col}" e todos os seus lançamentos?`)) { 
-        await supabaseClient.from('lancamentos').delete().eq('coluna', col);
-        colunasAtivas = colunasAtivas.filter(c => c !== col); 
-        await salvarConfiguracoesNaNuvem();
-        await carregarConfiguracoesEDadosDoSupabase();
-        UI.showToast("Conta e lançamentos removidos.", "error"); 
-    } 
-}
-
-async function ajustarOrdemColuna(col, direcao) {
-    const idx = colunasAtivas.indexOf(col); if (idx === -1) return;
-    const novoIdx = idx + direcao; if (novoIdx < 1 || novoIdx >= colunasAtivas.length) return;
-    const temp = colunasAtivas[idx]; colunasAtivas[idx] = colunasAtivas[novoIdx]; colunasAtivas[novoIdx] = temp;
-    await salvarConfiguracoesNaNuvem(); renderizarPainelGeral();
-}
-
-async function zerarBaseDeDados() {
-    if(!confirm("⚠️ ATENÇÃO: Isso apagará TODOS os seus lançamentos da nuvem. Tem certeza?")) return;
-    UI.showToast("Limpando base de dados...", "success");
-    const { error } = await supabaseClient.from('lancamentos').delete().eq('user_id', usuarioAtual.id);
-    if (error) { UI.showToast("Erro ao limpar dados", "error"); } 
-    else { lancamentos = []; renderizarPainelGeral(); UI.showToast("Base de dados limpa!"); }
+// 🧹 RESET DE FÁBRICA COMPLETO AUDITADO
+async function resetDeFabricaCompleto() {
+    if(!confirm("⚠️ ATENÇÃO CRÍTICA: Isso apagará TODOS os lançamentos da nuvem, removerá membros adicionais, limpará filtros e redefinirá o sistema para o padrão original de fábrica. Prosseguir?")) return;
+    
+    UI.showToast("Redefinindo conta na nuvem...", "success");
+    
+    // 1. Limpa todas as transações da Nuvem
+    await supabaseClient.from('lancamentos').delete().eq('user_id', usuarioAtual.id);
+    
+    // 2. Reseta as configurações de fábrica na nuvem
+    const defaultSetup = { colunas_ativas: ["ENTRADAS"], categorias: CATEGORIAS_PADRAO, membros: ["Pessoal"] };
+    await supabaseClient.from('usuario_configuracoes').update(defaultSetup).eq('user_id', usuarioAtual.id);
+    
+    // 3. Limpa memórias locais do frontend
+    localStorage.removeItem('k_valores_visiveis');
+    membroFiltroAtual = "TODOS";
+    
+    UI.showToast("Sistema reinicializado com sucesso!");
+    await carregarConfiguracoesEDadosDoSupabase();
 }
 
 function abrirModalImportador() { 
-    const colSelect = document.getElementById('imp-coluna'); 
-    colSelect.innerHTML = '<option value="AUTO">🤖 Auto-Detectar Banco</option>'; 
-    colunasAtivas.forEach(c => { if(c !== "ENTRADAS") colSelect.innerHTML += `<option value="${c}">${c}</option>`; }); 
-    
-    const memSelect = document.getElementById('imp-membro');
-    if (memSelect) {
-        memSelect.innerHTML = ''; membrosFamilia.forEach(m => memSelect.innerHTML += `<option value="${m}">${m}</option>`);
-    }
+    const fMemb = document.getElementById('imp-fatura-membro'); fMemb.innerHTML = '';
+    const rMemb = document.getElementById('imp-receita-membro'); rMemb.innerHTML = '';
+    membrosFamilia.forEach(m => { fMemb.innerHTML += `<option value="${m}">${m}</option>`; rMemb.innerHTML += `<option value="${m}">${m}</option>`; });
 
-    document.getElementById('imp-arquivo').value = ''; 
+    const fCol = document.getElementById('imp-fatura-coluna');
+    fCol.innerHTML = '<option value="AUTO">🤖 Auto-Detectar Banco</option>';
+    colunasAtivas.forEach(c => { if(c !== "ENTRADAS") fCol.innerHTML += `<option value="${c}">${c}</option>`; });
+
     document.getElementById('modal-importador').classList.remove('hidden'); 
 }
 
 function fecharModalImportador() { document.getElementById('modal-importador').classList.add('hidden'); }
 
-function detectarEProcessarArquivo(input) {
-    const arq = input.files[0]; if(!arq) return; const leitor = new FileReader();
-    if(arq.name.endsWith(".pdf")) {
-        UI.showToast("Analisando PDF...", "success");
+// ==========================================
+// 🧠 CONTROLADOR DUAL-CHANNEL CORRIGIDO (OFX E PDF)
+// ==========================================
+function dispararProcessamentoCanal(input, canal) {
+    const arq = input.files[0]; if(!arq) return;
+    const leitor = new FileReader();
+    UI.showToast(`Lendo documento (${arq.name.split('.').pop().toUpperCase()})...`, "success");
+
+    // Reintegração do processador nativo de OFX
+    if(arq.name.toLowerCase().endsWith(".ofx")) {
+        leitor.onload = function() {
+            if(canal === "FATURA") {
+                let colDestino = document.getElementById('imp-fatura-coluna').value;
+                let membro = document.getElementById('imp-fatura-membro').value;
+                let tOFX = processarMotorOFX(this.result, colDestino, membro);
+                enviarLoteSupabase(tOFX);
+            } else {
+                UI.showToast("Canais OFX são exclusivos para faturas/despesas.", "error");
+            }
+        }; 
+        leitor.readAsText(arq, 'UTF-8');
+    } 
+    // Processador de PDF via Regex
+    else if(arq.name.toLowerCase().endsWith(".pdf")) {
         leitor.onload = async function() { 
             const doc = await pdfjsLib.getDocument({ data: new Uint8Array(this.result) }).promise; let txt = "";
-            for(let p=1; p<=doc.numPages; p++) {
-                txt += (await (await doc.getPage(p)).getTextContent()).items.map(i => i.str).join(" ") + " "; 
-            }
-            processarImportacao(txt, arq.name, processarTextoRegex); 
+            for(let p=1; p<=doc.numPages; p++) { txt += (await (await doc.getPage(p)).getTextContent()).items.map(i => i.str).join(" ") + " "; }
+            executarMecanismoCanalPDF(txt, arq.name, canal);
         }; 
         leitor.readAsArrayBuffer(arq);
-    } else if(arq.name.endsWith(".ofx")) {
-        UI.showToast("Analisando OFX...", "success");
-        leitor.onload = function() { processarImportacao(this.result, arq.name, processarMotorOFX); }; leitor.readAsText(arq, 'UTF-8');
     }
 }
 
-async function processarImportacao(conteudo, nomeArq, funcaoExtrair) {
-    let nomeColunaFinal = document.getElementById('imp-coluna').value;
-    let configuracaoAlterada = false;
-    
-    if (nomeColunaFinal === "AUTO") {
-        let bancoConfig = detectarBancoArquivo(conteudo, nomeArq);
-        if (bancoConfig) { 
-            nomeColunaFinal = bancoConfig.nome.toUpperCase(); 
-            if (!colunasAtivas.includes(nomeColunaFinal)) { colunasAtivas.push(nomeColunaFinal); configuracaoAlterada = true; UI.showToast(`Conta autodetectada!`); } 
-        } else {
-            nomeColunaFinal = colunasAtivas.find(c => c !== "ENTRADAS") || "OUTROS";
-            if (!colunasAtivas.includes(nomeColunaFinal)) { colunasAtivas.push(nomeColunaFinal); configuracaoAlterada = true; }
-            UI.showToast(`Banco não identificado. Usando ${nomeColunaFinal}.`);
-        }
-    }
-
-    if(configuracaoAlterada) await salvarConfiguracoesNaNuvem();
-
-    const arrayNovasTransacoes = funcaoExtrair(conteudo, nomeColunaFinal);
-    let membroSelecionado = document.getElementById('imp-membro').value;
-    const transacoesFinal = arrayNovasTransacoes.map(t => ({ ...t, membro: membroSelecionado }));
-    
-    if(transacoesFinal.length > 0) { 
-        UI.showToast(`Enviando ${transacoesFinal.length} transações para a nuvem...`, "success");
-        const { error } = await supabaseClient.from('lancamentos').insert(transacoesFinal);
-        
-        if (error) {
-            UI.showToast("Erro ao importar para nuvem.", "error");
-        } else {
-            fecharModalImportador(); 
-            await carregarConfiguracoesEDadosDoSupabase();
-            UI.showToast(`${transacoesFinal.length} transações importadas com sucesso!`);
-        }
-    } else { 
-        UI.showToast("Nenhuma transação válida lida.", "error"); 
+// Helper de envio seguro em lote
+async function enviarLoteSupabase(transacoesFinal) {
+    if(transacoesFinal.length > 0) {
+        await supabaseClient.from('lancamentos').insert(transacoesFinal);
+        fecharModalImportador(); 
+        await carregarConfiguracoesEDadosDoSupabase();
+        UI.showToast(`${transacoesFinal.length} lançamentos importados com sucesso!`);
+    } else {
+        UI.showToast("Nenhum dado válido extraído. Verifique o arquivo.", "error");
     }
 }
 
-function processarMotorOFX(texto, colDestino) {
-    let novosLancamentos = []; const blocosTransacionais = texto.split(/<STMTTRN>/i);
-    for (let i = 1; i < blocosTransacionais.length; i++) {
-        const bloco = blocosTransacionais[i];
-        const valorMatch = bloco.match(/<TRNAMT>([\d.-]+)/i); let memoMatch = bloco.match(/<MEMO>([^<]+)/i) || bloco.match(/<NAME>([^<]+)/i);
+// Motor nativo OFX blindado com as categorias duplicadas para o schema
+function processarMotorOFX(texto, colDestino, membroSelecionado) {
+    let novos = []; const blocos = texto.split(/<STMTTRN>/i);
+    for (let i = 1; i < blocos.length; i++) {
+        const bloco = blocos[i];
+        const vMatch = bloco.match(/<TRNAMT>([\d.-]+)/i); 
+        let dMatch = bloco.match(/<MEMO>([^<]+)/i) || bloco.match(/<NAME>([^<]+)/i);
         const dataMatch = bloco.match(/<DTPOSTED>(\d{4})(\d{2})(\d{2})/i);
-        let dataStr = new Date().toISOString().split('T')[0]; if (dataMatch) dataStr = `${dataMatch[1]}-${dataMatch[2]}-${dataMatch[3]}`;
-        let mesStr = dataStr.substring(0, 7);
         
-        if (valorMatch && memoMatch) {
-            let val = parseFloat(valorMatch[1]); let desc = memoMatch[1].trim(); if (isNaN(val) || val === 0) continue; let tipo = "SAÍDA";
-            if (val < 0) { tipo = "SAÍDA"; val = Math.abs(val); } else { tipo = "ENTRADA"; }
-            let cat = "Outros";
-            for (const [k, p] of Object.entries(DICIONARIO_CATEGORIAS)) if (p.some(pal => desc.toLowerCase().includes(pal))) cat = k;
+        let dStr = new Date().toISOString().split('T')[0]; 
+        if (dataMatch) dStr = `${dataMatch[1]}-${dataMatch[2]}-${dataMatch[3]}`;
+        let mStr = dStr.substring(0, 7);
+        
+        if (vMatch && dMatch) {
+            let val = parseFloat(vMatch[1]); let desc = dMatch[1].trim(); 
+            if (isNaN(val) || val >= 0) continue; // Pula créditos da fatura, foca só em SAÍDA.
             
-            novosLancamentos.push({ user_id: usuarioAtual.id, descricao: UI.escapeHTML(desc), nota: "", valor: val, tipo, coluna: tipo === "ENTRADA" ? "ENTRADAS" : colDestino, categorias: [cat], membro: membrosFamilia.length > 0 ? membrosFamilia[0] : "Pessoal", mes: mesStr, data: dataStr });
+            val = Math.abs(val);
+            let dLow = desc.toLowerCase();
+            if (dLow.includes("pagamento") || dLow.includes("pagto") || dLow.includes("liquidação")) continue;
+            
+            let cat = "Outros";
+            for (const [k, p] of Object.entries(DICIONARIO_CATEGORIAS)) { if (p.some(pal => dLow.includes(pal))) { cat = k; break; } }
+
+            novos.push({ 
+                user_id: usuarioAtual.id, descricao: UI.escapeHTML(desc), nota: "Importado via OFX", valor: val, 
+                tipo: "SAÍDA", coluna: colDestino === "AUTO" ? "OUTROS" : colDestino, 
+                categories: [cat], categorias: [cat], membro: membroSelecionado, mes: mStr, data: dStr 
+            });
         }
-    } return novosLancamentos;
+    } return novos;
 }
 
-// ==============================================================================
-// MOTOR DE LEITURA TEXTUAL BLINDADO COM ENVIO DUPLO DE CATEGORIES
-// ==============================================================================
-function processarTextoRegex(texto, colDestino) {
-    let novosLancamentos = [];
-    const textoLimpo = texto.replace(/\s+/g, ' ');
-    const anoAtual = new Date().getFullYear();
-    
-    while((m = regex.exec(texto.replace(/\s+/g, ' '))) !== null) {
-        let desc = m[2].trim();
-        let valorOriginal = m[3].trim();
-        
-        let centavos = valorOriginal.slice(-2);
-        let inteiros = valorOriginal.slice(0, -3).replace(/[.,]/g, '');
-        let val = parseFloat(inteiros + '.' + centavos);
-        
-        if(Number.isNaN(val) || !Number.isFinite(val) || val === 0 || desc.length < 3) continue;
-        
-        let [dia, mes] = m[1].split('/');
-        let dataStr = `${anoAtual}-${mes}-${dia}`;
-        let mesStr = `${anoAtual}-${mes}`;
-        
-        let tipo = val < 0 ? "ENTRADA" : "SAÍDA";
-        val = Math.abs(val);
-        
-        let cat = "Outros";
-        for (const [k, p] of Object.entries(DICIONARIO_CATEGORIAS)) {
-            if (p.some(pal => desc.toLowerCase().includes(pal))) cat = k;
+function detectarBancoArquivo(texto, nomeArquivo) {
+    const txtCompleto = (texto + " " + nomeArquivo).toUpperCase();
+    for (const key in BANCOS_BRANDING) {
+        if (BANCOS_BRANDING[key].keywords.some(kw => new RegExp(`(?:^|\\W)${kw}(?:$|\\W)`).test(txtCompleto))) {
+            return BANCOS_BRANDING[key];
         }
-        
-        novosLancamentos.push({ 
-            user_id: usuarioAtual.id, 
-            descricao: UI.escapeHTML(desc), 
-            nota: "", 
-            valor: Number(val.toFixed(2)), 
-            tipo: tipo, 
-            coluna: tipo === "ENTRADA" ? "ENTRADAS" : colDestino, 
-            categorias: [cat], 
-            membro: (typeof membrosFamilia !== 'undefined' && membrosFamilia.length > 0) ? membrosFamilia[0] : "Pessoal", 
-            mes: mesStr, 
-            data: dataStr 
-        }); 
+    } return null;
+}
+
+// Interpretador Regex de PDF (Datas Corrigidas)
+function executarMecanismoCanalPDF(texto, nomeArq, canal) {
+    let tFinal = [];
+    const txt = texto.replace(/\s+/g, ' ');
+    const anoAtual = new Date().getFullYear();
+    const mesesAbrev = { "JAN": "01", "FEV": "02", "MAR": "03", "ABR": "04", "MAI": "05", "JUN": "06", "JUL": "07", "AGO": "08", "SET": "09", "OUT": "10", "NOV": "11", "DEZ": "12" };
+
+    if (canal === "FATURA") {
+        let col = document.getElementById('imp-fatura-coluna').value;
+        if(col === "AUTO") { let b = detectarBancoArquivo(txt, nomeArq); col = b ? b.nome.toUpperCase() : "OUTROS"; }
+        let mem = document.getElementById('imp-fatura-membro').value;
+
+        const regex = /(\d{2}[\/\s]\d{2}|\d{2}\s+[A-Z]{3})\s+(.+?)\s+(-?\d{1,3}(?:\.\d{3})*[.,]\d{2})/gi;
+        let m;
+        while ((m = regex.exec(txt)) !== null) {
+            let desc = m[2].trim(); let dLow = desc.toLowerCase();
+            if (dLow.includes("pagamento") || dLow.includes("pagto") || dLow.includes("comprovante") || dLow.includes("credito fatura") || dLow.includes("saldo anterior")) continue;
+
+            let valStr = m[3].replace(/[.,]/g, ''); let val = parseFloat(valStr.slice(0, -2) + '.' + valStr.slice(-2));
+            if(isNaN(val) || val === 0) continue;
+
+            // Correção de Data Extraída (Fim da Data Congelada)
+            let dtOriginal = m[1].trim().toUpperCase();
+            let dia = "01", mesNum = "01";
+            if (dtOriginal.includes('/')) {
+                let pts = dtOriginal.split('/'); dia = pts[0]; mesNum = pts[1];
+            } else {
+                let pts = dtOriginal.split(' '); dia = pts[0].padStart(2, '0');
+                if(pts[1] && mesesAbrev[pts[1]]) mesNum = mesesAbrev[pts[1]];
+            }
+            let dataLancamento = `${anoAtual}-${mesNum}-${dia}`;
+            let mesLancamento = `${anoAtual}-${mesNum}`;
+
+            let cat = "Outros";
+            for (const [k, p] of Object.entries(DICIONARIO_CATEGORIAS)) { if (p.some(pal => dLow.includes(pal))) { cat = k; break; } }
+
+            tFinal.push({
+                user_id: usuarioAtual.id, descricao: UI.escapeHTML(desc), nota: "Fatura em PDF", valor: Math.abs(val),
+                tipo: "SAÍDA", coluna: col, categorias: [cat], categories: [cat], membro: mem, data: dataLancamento, mes: mesLancamento
+            });
+        }
+    } else {
+        let mem = document.getElementById('imp-receita-membro').value;
+        const txtMaiusculo = txt.toUpperCase();
+        if (txtMaiusculo.includes("RECIBO DE PAGAMENTO") || txtMaiusculo.includes("FOLHA MENSAL") || txtMaiusculo.includes("SALÁRIO")) {
+            const padroes = [
+                { regex: /DIAS NORMAIS\s+(?:\d{1,3}[:,]\d{2})\s+([\d.,]+)/i, desc: "Salário Base (Dias Normais)" },
+                { regex: /HORAS EXTRAS.*?\s+(?:\d{1,3}[:,]\d{2})\s+([\d.,]+)/i, desc: "Horas Extras" },
+                { regex: /REFLEXO EXTRAS.*?\s+(?:\d{1,3}[:,]\d{2})\s+([\d.,]+)/i, desc: "Reflexo Horas Extras" }
+            ];
+            // Para holerite usaremos o dia 05 do mes atual como marcação padrão
+            let dataHoje = new Date().toISOString().split('T')[0];
+            let mesHoje = dataHoje.substring(0, 7);
+
+            padroes.forEach(p => {
+                let m = p.regex.exec(txt);
+                if (m && m[1]) {
+                    let val = parseFloat(m[1].replace(/\./g, '').replace(',', '.'));
+                    if(!isNaN(val) && val > 0) {
+                        tFinal.push({
+                            user_id: usuarioAtual.id, descricao: p.desc, nota: "Holerite Líquido", valor: val,
+                            tipo: "ENTRADA", coluna: "ENTRADAS", categorias: ["Reserva & Investimentos"], categories: ["Reserva & Investimentos"], membro: mem, data: dataHoje, mes: mesHoje
+                        });
+                    }
+                }
+            });
+        }
     }
-    
-    return novosLancamentos;
+    enviarLoteSupabase(tFinal);
 }
 
 function renderizarPainelGeral() {
@@ -1093,132 +1014,94 @@ function renderizarPainelGeral() {
     document.getElementById('lbl-saidas').innerText = formataValorVisivel(tSai);
     document.getElementById('lbl-saldo').innerText = formataValorVisivel(tEnt - tSai);
 
-    renderizarKanban(filtroDados); processarGraficos(filtroDados);
+    renderizarKanbanDinamico(filtroDados); processarGraficos(filtroDados);
 }
 
-function renderizarKanban(dados) {
-    const row = document.getElementById('kanban-board-row'); 
-    if (!row) return;
-    row.innerHTML = '';
+// 🏦 KANBAN INTELIGENTE AUDITADO: CORREÇÃO DE RENDERIZAÇÃO DE BRANDING
+function renderizarKanbanDinamico(dados) {
+    const row = document.getElementById('kanban-board-row'); if (!row) return; row.innerHTML = '';
     
-    colunasAtivas.forEach((col, idx) => {
-        const nomeChave = col.trim().toUpperCase();
-        let bConfig = null;
+    const colunasComDados = new Set(["ENTRADAS"]);
+    dados.forEach(d => { if(d.coluna) colunasComDados.add(d.coluna.trim().toUpperCase()); });
+
+    const colunasExibicao = Array.from(colunasComDados);
+
+    colunasExibicao.forEach(col => {
+        const nomeChave = col.toUpperCase();
         
-        for (const k in BANCOS_BRANDING) {
-            if (k === nomeChave || BANCOS_BRANDING[k].keywords.includes(nomeChave)) {
-                bConfig = BANCOS_BRANDING[k]; break;
+        // Busca flexivel de branding corrigida para bater keywords e aplicar a cor certa
+        let bConfig = null;
+        for (const key in BANCOS_BRANDING) {
+            if (key === nomeChave || BANCOS_BRANDING[key].keywords.includes(nomeChave)) {
+                bConfig = BANCOS_BRANDING[key]; break;
             }
         }
         
-        const isBrand = !!bConfig;
-        const cor = isBrand ? bConfig.cor : '#64748b';
-        const icon = isBrand ? `${bConfig.icon} ` : (nomeChave === "ENTRADAS" ? '🟢 ' : '🏦 ');
-        
-        const styleVars = `--brand-cor: ${cor}; --brand-bg: ${isBrand ? cor+'14' : 'var(--card-bg)'}; --brand-header: ${isBrand ? cor+'18' : 'transparent'}; --brand-border: ${isBrand ? cor+'35' : 'var(--borda)'};`;
+        const cor = bConfig ? bConfig.cor : '#64748b';
+        const icon = bConfig ? `${bConfig.icon} ` : (nomeChave === "ENTRADAS" ? '🟢 ' : '🏦 ');
 
         const transacoesDaColuna = dados.filter(d => d.coluna.trim().toUpperCase() === nomeChave).sort((a, b) => new Date(b.data) - new Date(a.data));
         const htmlCartoes = transacoesDaColuna.map(item => {
-            const bgCard = isBrand ? cor : 'var(--card-bg)';
-            const txtCor = isBrand ? obterCorTextoContraste(cor) : 'var(--texto-principal)';
-            const tagBg = txtCor === '#ffffff' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.06)';
-            const tagsArr = Array.isArray(item.categorias) ? item.categorias : [item.categorias || "Outros"];
-            const tagsHtml = tagsArr.map(cat => `<span class="kanban-tag" style="background:${tagBg}; color:${txtCor}">${cat}</span>`).join('');
-            const valVis = valoresVisiveis ? `R$ ${item.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})}` : `R$ •••••`;
-            const dataFmt = item.data ? item.data.split('-').reverse().join('/') : '';
+            const bgCard = bConfig ? cor : 'var(--card-bg)';
+            const txtCor = bConfig ? obterCorTextoContraste(cor) : 'var(--texto-principal)';
+            const valVis = formataValorVisivel(item.valor, "");
+            const formatData = item.data ? item.data.split('-').reverse().join('/') : '';
 
             return `
-            <div class="kanban-card-base border group" style="background:${bgCard}; border-color:${isBrand?'transparent':'var(--borda)'}; color:${txtCor}">
-                <div class="flex flex-col text-xs font-semibold mb-1">
-                    <span class="truncate pr-2 block font-medium" title="${item.descricao}">${item.descricao}</span>
-                    ${item.nota ? `<div class="text-[10px] mt-1 flex items-center gap-1 opacity-80">📦 ${item.nota}</div>` : ''}
+            <div class="kanban-card-base border mb-2" style="background:${bgCard}; color:${txtCor}; border-color: var(--borda);">
+                <div class="flex justify-between font-bold text-xs">
+                    <span class="truncate w-40" title="${item.descricao}">${item.descricao}</span>
+                    <span>R$ ${valVis}</span>
                 </div>
-                <div class="font-extrabold text-sm ${!isBrand && item.tipo === 'ENTRADA' ? 'valor-positivo' : (!isBrand ? 'valor-negativo' : '')}" style="${isBrand && txtCor === '#ffffff' ? `color: ${item.tipo === 'ENTRADA' ? '#A7F3D0' : '#FECACA'};` : ''}">${valVis}</div>
-                <div class="mt-2 flex flex-wrap gap-1 items-center">${tagsHtml}</div>
-                <div class="mt-2 pt-2 border-t flex justify-between items-center gap-1" style="border-color:${isBrand ? 'rgba(255,255,255,0.18)' : 'var(--borda)'}">
-                    <div class="flex items-center">
-                        <span class="kanban-tag" style="background:${tagBg}; color:${txtCor}">${item.membro || 'Pessoal'}</span>
-                        ${dataFmt ? `<span class="kanban-tag ml-1" style="background:${tagBg}; color:${txtCor}">📅 ${dataFmt}</span>` : ''}
-                    </div>
-                    <div class="flex gap-2 ml-auto">
-                        <button onclick="abrirModalLancamento('${item.id}')" class="text-[10px] font-bold opacity-80 hover:opacity-100">✏️</button>
-                        <button onclick="removerLancamento('${item.id}')" class="text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">🗑️</button>
+                <div class="text-[9px] opacity-75 mt-1 flex justify-between font-semibold">
+                    <span>${formatData}</span>
+                    <span>🏷️ ${item.categorias?.[0] || 'Geral'}</span>
+                </div>
+                <div class="flex justify-between items-center mt-2 pt-2 border-t opacity-60 hover:opacity-100 transition-opacity" style="border-color: rgba(156, 163, 175, 0.3);">
+                    <span class="text-[9px] font-bold uppercase tracking-wider">👤 ${item.membro}</span>
+                    <div class="flex gap-2">
+                        <button onclick="abrirModalLancamento('${item.id}')">✏️</button>
+                        <button onclick="removerLancamento('${item.id}')">🗑️</button>
                     </div>
                 </div>
             </div>`;
         }).join('');
 
         row.innerHTML += `
-            <div class="mobile-card min-w-[280px] w-72 flex flex-col shrink-0 overflow-hidden transition-all duration-300" style="${styleVars} background-color: var(--brand-bg); border-color: var(--brand-border);">
-                <div class="px-4 py-3 font-bold text-sm border-b flex items-center justify-between" style="border-top: 4px solid var(--brand-cor); background: var(--brand-header); border-bottom-color: var(--brand-border); color: var(--texto-principal);">
-                    <div class="flex items-center gap-2"><span>${icon}</span><span class="tracking-wide">${col}</span></div>
-                    <div class="flex items-center gap-1">
-                        ${nomeChave !== "ENTRADAS" && idx > 1 ? `<button onclick="ajustarOrdemColuna('${col}', -1)" class="opacity-50 hover:opacity-100 text-xs px-1 py-0.5 rounded transition bg-gray-500/10">◀️</button>` : ''}
-                        ${nomeChave !== "ENTRADAS" && idx < colunasAtivas.length - 1 ? `<button onclick="ajustarOrdemColuna('${col}', 1)" class="opacity-50 hover:opacity-100 text-xs px-1 py-0.5 rounded transition bg-gray-500/10">▶️</button>` : ''}
-                        <button onclick="toggleSecao('col-${col.replace(/\s+/g, '-')}', this)" class="opacity-50 hover:opacity-100 text-xs px-2 py-1 rounded transition" style="background-color: var(--badge-bg); color: var(--texto-principal);">➖</button>
-                        ${nomeChave !== "ENTRADAS" ? `<button onclick="removerColuna('${col}')" class="opacity-50 hover:opacity-100 text-xs px-2 py-1 rounded transition text-rose-500 hover:bg-rose-500/20">🗑️</button>` : ''}
-                    </div>
+            <div class="mobile-card min-w-[260px] w-64 flex flex-col shrink-0 overflow-hidden shadow-md">
+                <div class="px-3 py-3 font-bold text-xs border-b flex items-center justify-between" style="border-top: 4px solid ${cor}; background-color: ${bConfig ? cor+'10' : 'transparent'};">
+                    <div class="flex items-center gap-1 text-[13px] tracking-wide"><span>${icon}</span><span>${col}</span></div>
+                    <span class="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-2 py-0.5 rounded-full text-[10px] shadow-inner">${transacoesDaColuna.length}</span>
                 </div>
-                <div id="col-${col.replace(/\s+/g, '-')}" class="p-4 flex flex-col gap-3 max-h-[420px] overflow-y-auto kanban-scrollbar">${htmlCartoes}</div>
+                <div class="p-3 max-h-[420px] overflow-y-auto kanban-scrollbar flex flex-col gap-1" style="background-color: ${bConfig ? cor+'05' : 'transparent'};">${htmlCartoes}</div>
             </div>`;
     });
 }
 
 function processarGraficos(dados) {
     const mapa = {}; let tot = 0;
-    
     dados.filter(l => l.tipo === "SAÍDA").forEach(i => {
-        let tags = Array.isArray(i.categorias) ? i.categorias : [i.categorias || "Outros"];
-        tags = tags.map(t => categorias.includes(t) ? t : "Outros");
-
-        const tagsAtivas = tags.filter(c => filtrosCategoriasAtivos.includes(c));
-        
-        if (tagsAtivas.length > 0) {
-            tot += i.valor; const valorFracionado = i.valor / tagsAtivas.length;
-            tagsAtivas.forEach(c => { mapa[c] = (mapa[c] || 0) + valorFracionado; });
-        }
+        let tag = i.categorias?.[0] || "Outros";
+        if (filtrosCategoriasAtivos.includes(tag)) { tot += i.valor; mapa[tag] = (mapa[tag] || 0) + i.valor; }
     });
 
     document.getElementById('lbl-total-grafico').innerText = formataValorVisivel(tot);
     if(chartPizzaInstance) chartPizzaInstance.destroy();
-    const corTextoLabel = temaAtual === 'LIGHT' ? '#1e293b' : '#f8fafc';
 
     chartPizzaInstance = new Chart(document.getElementById('meuGraficoPizza').getContext('2d'), { 
-        type: 'pie', data: { labels: Object.keys(mapa), datasets: [{ data: Object.values(mapa), backgroundColor: coresGraficos[temaAtual], borderWidth: 2, borderColor: temaAtual === 'LIGHT' ? '#ffffff' : '#1e293b' }] }, 
-        options: { 
-            responsive: true, maintainAspectRatio: false, layout: { padding: { left: 40, right: 40, top: 40, bottom: 40 } },
-            plugins: { 
-                legend: { display: false }, 
-                datalabels: { 
-                    display: true, color: corTextoLabel, font: { weight: '800', size: 10 }, textAlign: 'center', anchor: 'end', align: 'end', offset: 8, clip: false,
-                    formatter: (value, ctx) => {
-                        let label = ctx.chart.data.labels[ctx.dataIndex];
-                        let percentage = tot > 0 ? ((value / tot) * 100).toFixed(1) + '%' : '0%';
-                        let vTxt = valoresVisiveis ? `R$ ${value.toLocaleString('pt-BR', {minimumFractionDigits: 2})}` : `R$ •••••`;
-                        return `${label}\n${vTxt}\n(${percentage})`;
-                    }
-                } 
-            } 
-        } 
+        type: 'pie', data: { labels: Object.keys(mapa), datasets: [{ data: Object.values(mapa), backgroundColor: coresGraficos[temaAtual] }] }, 
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: true, formatter: (v) => tot>0 ? ((v/tot)*100).toFixed(0)+'%' : '0%' } } } 
     });
 
-    let mesesArr = Array.from(new Set(dados.map(l => l.mes).filter(Boolean))).sort();
-    if(mesesArr.length === 0) mesesArr = [new Date().toISOString().substring(0,7)];
-    if(mesesArr.length > 6) mesesArr = mesesArr.slice(-6); 
-
+    let mesesArr = Array.from(new Set(dados.map(l => l.mes).filter(Boolean))).sort().slice(-6);
+    if(!mesesArr.length) mesesArr = [new Date().toISOString().substring(0,7)];
     const linha = mesesArr.map(m => dados.reduce((a, l) => (l.mes===m && l.tipo==="SAÍDA") ? a+l.valor : a, 0));
-    const labelsLinha = mesesArr.map(m => { const parts = m.split('-'); return `${parts[1]}/${parts[0]}`; });
+    const labelsLinha = mesesArr.map(m => { const p = m.split('-'); return `${p[1]}/${p[0]}`; });
 
     if(chartLinhaInstance) chartLinhaInstance.destroy();
-    const corLinhaLrb = temaAtual === 'DARK' ? '#39ff14' : '#00b4d8';
-    const bgLinhaLrb = temaAtual === 'DARK' ? 'rgba(57, 255, 20, 0.1)' : 'rgba(0, 180, 216, 0.1)';
-
     chartLinhaInstance = new Chart(document.getElementById('graficoProgressaoLinha').getContext('2d'), { 
-        type: 'line', data: { labels: labelsLinha, datasets: [{ data: linha, borderColor: corLinhaLrb, backgroundColor: bgLinhaLrb, borderWidth: 3, fill: true, tension: 0.4 }] }, 
-        options: { 
-            responsive: true, maintainAspectRatio: false, scales: { y: { display: false }, x: { grid: { display: false }, ticks: { color: temaAtual === 'DARK' ? '#9ca3af' : '#4b5563', font: { weight: 'bold' } } } }, 
-            plugins: { legend: { display: false }, datalabels: { align: 'top', color: corTextoLabel, font: { weight: 'bold', size: 11 }, formatter: v => valoresVisiveis ? 'R$ ' + v.toLocaleString('pt-BR') : 'R$ •••••' } } 
-        } 
+        type: 'line', data: { labels: labelsLinha, datasets: [{ data: linha, borderColor: temaAtual==='DARK'?'#39ff14':'#00b4d8', fill:true, backgroundColor: temaAtual==='DARK'?'rgba(57,255,20,0.1)':'rgba(0,180,216,0.1)' }] }, 
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { display: false }, x: { grid: { display: false } } }, plugins: { legend: { display: false }, datalabels: { display: false } } } 
     });
 }
 </script>
