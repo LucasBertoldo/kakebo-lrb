@@ -14,7 +14,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
-    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
@@ -133,6 +132,35 @@
         
         .valor-positivo { color: #10b981; } 
         .valor-negativo { color: #ef4444; } 
+
+        .chip-base {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.6875rem;
+            font-weight: 600;
+            border-radius: 0.5rem;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+        .chip-inativo { background-color: transparent; color: var(--texto-mutado); border-color: var(--borda); }
+        .chip-ativo { background-color: var(--cor-acc); color: var(--cor-acc-txt); border-color: var(--cor-acc); }
+        
+        .kanban-card-base {
+            padding: 0.75rem;
+            border-radius: 0.75rem;
+            position: relative;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+        }
+        .kanban-tag {
+            font-size: 9px;
+            text-transform: uppercase;
+            font-weight: 700;
+            padding: 0.125rem 0.375rem;
+            border-radius: 0.25rem;
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body class="min-h-screen pb-10">
@@ -186,7 +214,6 @@
                 </div>
                 
                 <button onclick="limparFiltroDatas()" class="p-2 px-4 min-h-[44px] rounded-lg text-xs font-bold shadow-sm" style="background-color: var(--badge-bg); border: 1px solid var(--borda); color: var(--texto-principal);" title="Limpar filtros e exibir todas as movimentações">🔄 Tudo</button>
-                
                 <button onclick="deslogarUsuario()" class="p-2 px-4 min-h-[44px] rounded-lg text-sm font-bold bg-rose-500 text-white flex-1 md:flex-none shadow-sm shadow-rose-500/30">Sair</button>
             </div>
         </div>
@@ -242,23 +269,30 @@
                         <input type="text" id="input-novo-membro" class="text-sm py-2 px-3 min-h-[40px]" placeholder="Novo membro...">
                         <button onclick="criarNovoMembro()" class="btn-primary px-3 text-xs min-h-[40px] rounded-lg shadow-sm">Add</button>
                     </div>
-                    <div class="border-t pt-2" style="border-color: var(--borda);">
-                        <label class="block text-xs font-bold uppercase mb-2" style="color: var(--texto-mutado)">Categorias Ativas</label>
-                        <div id="lista-chips-filtros" class="flex flex-wrap gap-2 max-h-[100px] overflow-y-auto kanban-scrollbar"></div>
-                    </div>
-                    <div class="mt-auto pt-3 border-t flex flex-col gap-2" style="border-color: var(--borda);">
-                        <label class="block text-[10px] font-bold uppercase" style="color: var(--texto-mutado)">Nova Categoria Agrupada</label>
-                        <select id="select-grupo-nova-categoria" class="text-xs min-h-[36px] p-1 bg-transparent border rounded-lg" style="border-color: var(--borda); color: var(--texto-principal);">
-                            <option value="TECNOLOGIA">💻 Infra & TI</option>
-                            <option value="CASA">🏠 Contas de Casa</option>
-                            <option value="MOBILIDADE">🚗 Logística & Veículo</option>
-                            <option value="ESTILO_DE_VIDA">🍿 Estilo de Vida</option>
-                            <option value="INVESTIMENTOS">📈 Investimentos</option>
-                            <option value="OUTROS">📌 Outros</option>
-                        </select>
-                        <div class="flex gap-2">
-                            <input type="text" id="input-nova-categoria" class="text-sm py-1 px-3 min-h-[38px] w-full border rounded-lg" style="background-color: transparent; border-color: var(--borda);" placeholder="Nome da tag...">
-                            <button onclick="criarNovaCategoria()" class="btn-primary px-3 text-xs min-h-[38px] rounded-lg shadow-sm">Add</button>
+                    
+                    <div class="border-t pt-4 mt-2" style="border-color: var(--borda);">
+                        <div class="flex justify-between items-center mb-3">
+                            <label class="block text-xs font-bold uppercase" style="color: var(--texto-mutado)">Organização de Gastos (Tags)</label>
+                        </div>
+                        
+                        <div id="lista-chips-filtros" class="flex flex-col gap-3 max-h-[220px] overflow-y-auto kanban-scrollbar mb-4 pr-1"></div>
+
+                        <div class="p-3 rounded-xl bg-gray-50 border shadow-sm transition-all" style="background-color: var(--badge-bg); border-color: var(--borda);">
+                            <label class="block text-[10px] font-bold uppercase mb-2 opacity-70">✨ Criar Nova Tag</label>
+                            <div class="flex flex-col gap-2">
+                                <select id="select-grupo-nova-categoria" class="text-xs p-2 rounded-lg bg-transparent border font-semibold" style="border-color: var(--borda); color: var(--texto-principal);">
+                                    <option value="CASA">🏠 Moradia & Dia a Dia</option>
+                                    <option value="MOBILIDADE">🚗 Transporte & Veículo</option>
+                                    <option value="ESTILO_DE_VIDA">🍿 Lazer & Estilo de Vida</option>
+                                    <option value="TECNOLOGIA">💻 TI & Assinaturas</option>
+                                    <option value="INVESTIMENTOS">📈 Financeiro & Investimentos</option>
+                                    <option value="OUTROS">📌 Compras & Outros</option>
+                                </select>
+                                <div class="flex gap-2">
+                                    <input type="text" id="input-nova-categoria" class="text-xs py-2 px-3 w-full border rounded-lg bg-transparent" style="border-color: var(--borda);" placeholder="Ex: Farmácia, Pet...">
+                                    <button onclick="criarNovaCategoria()" class="btn-primary px-4 py-0 text-xs rounded-lg min-h-[36px]">Criar</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -276,7 +310,7 @@
             <div id="conteudo-acoes" class="p-5 flex flex-col sm:flex-row items-center justify-between gap-4 transition-all">
                 <div class="grid grid-cols-2 sm:flex w-full gap-3">
                     <button onclick="abrirModalLancamento()" class="btn-primary px-4 py-2 text-sm shadow-sm">➕ Nova Transação</button>
-                    <button onclick="abrirModalImportador()" class="btn-secondary px-4 py-2 text-sm shadow-sm">📥 Importar OFX/PDF</button>
+                    <button onclick="abrirModalImportador()" class="btn-secondary px-4 py-2 text-sm shadow-sm">📥 Importar (Holerite/OFX/PDF)</button>
                     <button onclick="adicionarColunaDespesa()" class="btn-secondary px-4 py-2 text-sm shadow-sm">🏦 Nova Conta</button>
                     <button onclick="zerarBaseDeDados()" class="bg-red-500/10 text-red-500 border border-red-500/20 px-4 py-2 text-sm rounded-lg shadow-sm font-bold hover:bg-red-500/20 transition">🧹 Zerar Base</button>
                 </div>
@@ -361,7 +395,7 @@
     <div id="modal-importador" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm">
         <div class="mobile-card p-6 w-full max-w-lg flex flex-col gap-4">
             <h3 class="text-xl font-bold">Importar Arquivo (Nuvem)</h3>
-            <p class="text-sm" style="color: var(--texto-mutado)">Processa sua fatura localmente e envia de forma segura para seu banco de dados Supabase.</p>
+            <p class="text-sm" style="color: var(--texto-mutado)">Processa seu Holerite ou Fatura e envia de forma segura para a nuvem.</p>
             
             <div>
                 <label class="block text-xs font-bold mb-1" style="color: var(--texto-mutado)">Conta Destino</label>
@@ -394,9 +428,6 @@ window.onerror = function(message, source, lineno, colno, error) {
     return false;
 };
 
-// ==============================================================================
-// CONFIGURAÇÃO SUPABASE
-// ==============================================================================
 const SUPABASE_URL = 'https://cdtedxswqzgfdflyadgb.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_2aNjRCxPpSGV1xFJxqq22Q_fp4jtEZF';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -461,9 +492,6 @@ function obterCorTextoContraste(hexcolor) {
     return (yiq >= 135) ? '#1e293b' : '#ffffff';
 }
 
-// ==============================================================================
-// MAPEAMENTO INTELIGENTE E VARIÁVEIS
-// ==============================================================================
 let colunasAtivas = ["ENTRADAS"];
 let membrosFamilia = ["Pessoal"];
 let membroFiltroAtual = "TODOS";
@@ -480,26 +508,30 @@ let categorias = [
     "Eletrônicos & Hardware", "Assinaturas & Softwares", "Oficina & Manutenção",
     "Moradia & Contas", "Mercado & Essenciais", "Saúde & Bem-estar",
     "Transporte & Veículo", "Alimentação Fora", "Lazer & Entretenimento",
-    "Compras Gerais", "Reserva & Investimentos", "Outros"
+    "Parcelamentos", "Impostos & Taxas", "Reserva & Investimentos", "Outros"
 ];
 let filtrosCategoriasAtivos = [...categorias];
 
 let mapeamentoCategorias = {
-    "TECNOLOGIA": ["Eletrônicos & Hardware", "Assinaturas & Softwares", "Oficina & Manutenção"],
     "CASA": ["Moradia & Contas", "Mercado & Essenciais", "Saúde & Bem-estar"],
-    "MOBILIDADE": ["Transporte & Veículo"],
-    "ESTILO_DE_VIDA": ["Alimentação Fora", "Lazer & Entretenimento", "Compras Gerais"],
+    "MOBILIDADE": ["Transporte & Veículo", "Oficina & Manutenção"],
+    "ESTILO_DE_VIDA": ["Alimentação Fora", "Lazer & Entretenimento"],
+    "TECNOLOGIA": ["Eletrônicos & Hardware", "Assinaturas & Softwares"],
     "INVESTIMENTOS": ["Reserva & Investimentos"],
-    "OUTROS": ["Outros"]
+    "OUTROS": ["Parcelamentos", "Impostos & Taxas", "Outros"]
 };
 
 const DICIONARIO_CATEGORIAS = {
-    "Assinaturas & Softwares": ["netflix", "spotify", "disney", "hbo", "prime", "youtube", "cloud", "aws", "hostinger", "github", "chatgpt"],
-    "Eletrônicos & Hardware": ["kabum", "pichau", "terabyte", "aliexpress", "mercado livre", "amazon", "hardware", "placa", "memoria", "cooler"],
-    "Transporte & Veículo": ["posto", "shell", "petrobras", "ipiranga", "gasolina", "uber", "99", "ipva", "oficina carro", "oficina moto"],
-    "Mercado & Essenciais": ["supermerkado", "atacadao", "carrefour", "assai", "mercado", "padaria", "farmacia", "drogasil", "pague menos"],
-    "Alimentação Fora": ["restaurante", "bar", "cinema", "ifood", "burger", "mcdonalds", "pizza"],
-    "Moradia & Contas": ["celg", "equatorial", "saneago", "agua", "energia", "luz", "condominio", "aluguel", "vivo", "claro", "tim", "internet"]
+    "Mercado & Essenciais": ["supermercado", "supermerkado", "atacadao", "carrefour", "assai", "mercado", "padaria", "farmacia", "drogasil", "pague menos", "atacadista", "hortifruti", "açougue", "compre bem"],
+    "Oficina & Manutenção": ["mecanica", "oficina", "pneu", "oleo", "borracharia", "autocenter", "auto pecas", "motos", "honda", "yamaha", "denteck"],
+    "Transporte & Veículo": ["posto", "shell", "petrobras", "ipiranga", "gasolina", "uber", "99", "ipva", "pedagio", "estacionamento", "sem parar"],
+    "Assinaturas & Softwares": ["netflix", "spotify", "disney", "hbo", "prime", "youtube", "cloud", "aws", "hostinger", "github", "chatgpt", "apple", "google"],
+    "Eletrônicos & Hardware": ["kabum", "pichau", "terabyte", "aliexpress", "mercado livre", "amazon", "hardware", "placa", "memoria", "cooler", "shopee"],
+    "Alimentação Fora": ["restaurante", "bar", "cinema", "ifood", "burger", "mcdonalds", "pizza", "lanchonete", "sorveteria", "delivery", "churrascaria"],
+    "Moradia & Contas": ["celg", "equatorial", "saneago", "agua", "energia", "luz", "condominio", "aluguel", "vivo", "claro", "tim", "internet", "iptu", "iof", "encargos", "saldo anterior"],
+    "Saúde & Bem-estar": ["academia", "smartfit", "bluefit", "consulta", "exame", "hospital", "dentista", "cabelo", "barbearia", "salao"],
+    "Lazer & Entretenimento": ["ingresso", "show", "festa", "clube", "viagem", "hotel", "passagem", "sympla"],
+    "Impostos & Taxas": ["inss", "irrf", "imposto", "taxa", "fgts", "darf", "gps", "deducao", "contribuicao"]
 };
 
 const coresGraficos = {
@@ -523,11 +555,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 });
 
 function gerenciarCliqueMestre() {
-    if (modoCadastro) {
-        executarCadastro();
-    } else {
-        executarAutenticacao();
-    }
+    if (modoCadastro) executarCadastro(); else executarAutenticacao();
 }
 
 function alternarModoAuth() {
@@ -558,14 +586,10 @@ async function executarCadastro() {
     if(password.length < 6) return UI.showToast("A senha deve ter no mínimo 6 caracteres", "error");
 
     UI.showToast("Criando sua conta...", "success");
-
     const { data, error } = await supabaseClient.auth.signUp({ email, password });
 
     if (error) return UI.showToast("Erro ao cadastrar: " + error.message, "error");
-
-    if (data.user && !data.session) {
-        return UI.showToast("Conta criada! Confirme seu e-mail para continuar.", "success");
-    }
+    if (data.user && !data.session) return UI.showToast("Conta criada! Confirme seu e-mail para continuar.", "success");
 
     usuarioAtual = data.user || (data.session ? data.session.user : null);
     if (usuarioAtual) {
@@ -580,17 +604,14 @@ async function executarAutenticacao() {
     const password = document.getElementById('auth-pass').value;
     
     if(!email || !password) return UI.showToast("Preencha email e senha", "error");
-
     UI.showToast("Conectando ao banco...", "success");
 
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-
     if (error) return UI.showToast("Erro ao acessar: " + error.message, "error");
 
     usuarioAtual = data.user;
     document.getElementById('bloco-auth').style.display = 'none'; 
     document.getElementById('app-principal').classList.remove('hidden'); 
-    
     await carregarConfiguracoesEDadosDoSupabase();
 }
 
@@ -602,46 +623,32 @@ async function deslogarUsuario() {
     document.getElementById('app-principal').classList.add('hidden'); 
 }
 
-// SINCRONIZAÇÃO DE ESTRUTURA GLOBAL NA NUVEM
 async function carregarConfiguracoesEDadosDoSupabase() {
     if (!usuarioAtual) return;
-    
     UI.showToast("Sincronizando painel...", "success");
 
-    let { data: config, error: configError } = await supabaseClient
-        .from('usuario_configuracoes')
-        .select('*')
-        .maybeSingle();
+    let { data: config, error: configError } = await supabaseClient.from('usuario_configuracoes').select('*').maybeSingle();
 
     if (!config && (!configError || configError.code === 'PGRST116')) {
         const defaultConfig = {
-            user_id: usuarioAtual.id,
-            colunas_ativas: ["ENTRADAS"],
-            categorias: categorias,
-            membros: ["Pessoal"]
+            user_id: usuarioAtual.id, colunas_ativas: ["ENTRADAS"], categorias: categorias, membros: ["Pessoal"]
         };
-        const { data: newConfig, error: insertError } = await supabaseClient
-            .from('usuario_configuracoes')
-            .insert([defaultConfig])
-            .select()
-            .maybeSingle();
-        
+        const { data: newConfig, error: insertError } = await supabaseClient.from('usuario_configuracoes').insert([defaultConfig]).select().maybeSingle();
         if (!insertError && newConfig) config = newConfig;
     }
 
     if (config) {
         colunasAtivas = config.colunas_ativas || ["ENTRADAS"];
         if (config.categorias && config.categorias.length > 0) {
-            categorias = config.categorias;
+            categorias = Array.from(new Set([...categorias, ...config.categorias]));
             filtrosCategoriasAtivos = [...categorias];
             
             categorias.forEach(c => {
                 let found = false;
-                for (const g in mapeamentoCategorias) {
-                    if (mapeamentoCategorias[g].includes(c)) { found = true; break; }
-                }
+                for (const g in mapeamentoCategorias) { if (mapeamentoCategorias[g].includes(c)) { found = true; break; } }
                 if (!found) mapeamentoCategorias["OUTROS"].push(c);
             });
+            salvarConfiguracoesNaNuvem();
         }
         membrosFamilia = config.membros || ["Pessoal"];
     }
@@ -649,10 +656,7 @@ async function carregarConfiguracoesEDadosDoSupabase() {
     atualizarSeletoresMembros(); 
     renderizarFiltrosChips();
 
-    const { data: transacoes, error: transError } = await supabaseClient
-        .from('lancamentos')
-        .select('*')
-        .order('data', { ascending: false });
+    const { data: transacoes, error: transError } = await supabaseClient.from('lancamentos').select('*').order('data', { ascending: false });
 
     if (!transError) {
         lancamentos = transacoes || [];
@@ -662,23 +666,13 @@ async function carregarConfiguracoesEDadosDoSupabase() {
 
 async function salvarConfiguracoesNaNuvem() {
     if (!usuarioAtual) return;
-    await supabaseClient
-        .from('usuario_configuracoes')
-        .update({
-            colunas_ativas: colunasAtivas,
-            categorias: categorias,
-            membros: membrosFamilia
-        })
-        .eq('user_id', usuarioAtual.id);
+    await supabaseClient.from('usuario_configuracoes').update({ colunas_ativas: colunasAtivas, categorias: categorias, membros: membrosFamilia }).eq('user_id', usuarioAtual.id);
 }
 
 function toggleSecao(id, btn) {
     const el = document.getElementById(id);
-    if (el.classList.contains('hidden')) {
-        el.classList.remove('hidden'); btn.innerText = '➖';
-    } else {
-        el.classList.add('hidden'); btn.innerText = '➕';
-    }
+    if (el.classList.contains('hidden')) { el.classList.remove('hidden'); btn.innerText = '➖'; } 
+    else { el.classList.add('hidden'); btn.innerText = '➕'; }
 }
 
 function toggleOlhoVisibilidade() {
@@ -686,6 +680,16 @@ function toggleOlhoVisibilidade() {
     localStorage.setItem('k_valores_visiveis', valoresVisiveis);
     document.getElementById('btn-olho').innerText = valoresVisiveis ? '👁️' : '🙈';
     renderizarPainelGeral();
+}
+
+function mudarTema(novoTema) { 
+    temaAtual = novoTema; localStorage.setItem('k_tema_app', novoTema); document.documentElement.setAttribute('data-theme', novoTema);
+    document.getElementById('meta-theme-color').setAttribute('content', novoTema === 'LIGHT' ? '#eceef1' : '#0b0c0e'); renderizarPainelGeral(); 
+}
+
+function limparFiltroDatas(initialLoad = false) {
+    document.getElementById('filtro-data-inicio').value = ''; document.getElementById('filtro-data-fim').value = '';
+    if (!initialLoad) renderizarPainelGeral();
 }
 
 function atualizarSeletoresMembros() { 
@@ -701,22 +705,48 @@ async function criarNovoMembro() {
     if(val && !membrosFamilia.includes(val)) { 
         membrosFamilia.push(val); 
         document.getElementById('input-novo-membro').value = '';
-        atualizarSeletoresMembros(); 
-        await salvarConfiguracoesNaNuvem();
-        UI.showToast(`Membro adicionado.`); 
-        renderizarPainelGeral(); 
+        atualizarSeletoresMembros(); await salvarConfiguracoesNaNuvem();
+        UI.showToast(`Membro adicionado.`); renderizarPainelGeral(); 
+    }
+}
+
+function criarNovoMembroViaModal() {
+    const nome = prompt("Nome do novo membro:");
+    if(nome && !membrosFamilia.includes(nome)) {
+        membrosFamilia.push(nome);
+        salvarConfiguracoesNaNuvem();
+        abrirModalImportador(); 
     }
 }
 
 function renderizarFiltrosChips() {
-    const container = document.getElementById('lista-chips-filtros'); container.innerHTML = '';
-    categorias.forEach(cat => {
-        const isActive = filtrosCategoriasAtivos.includes(cat); const chip = document.createElement('button');
-        chip.className = `px-3 py-1.5 text-xs font-bold rounded-lg transition-colors border`;
-        chip.style.backgroundColor = isActive ? 'var(--cor-acc)' : 'var(--badge-bg)';
-        chip.style.color = isActive ? 'var(--cor-acc-txt)' : 'var(--texto-mutado)';
-        chip.style.borderColor = isActive ? 'var(--cor-acc)' : 'var(--borda)';
-        chip.innerText = cat; chip.onclick = () => toggleFiltro(cat); container.appendChild(chip);
+    const container = document.getElementById('lista-chips-filtros'); 
+    container.innerHTML = '';
+    
+    const titulosGrupos = {
+        "CASA": "🏠 Casa & Dia a Dia",
+        "MOBILIDADE": "🚗 Veículo & Mobilidade",
+        "ESTILO_DE_VIDA": "🍿 Estilo de Vida",
+        "TECNOLOGIA": "💻 TI & Eletrônicos",
+        "INVESTIMENTOS": "📈 Financeiro",
+        "OUTROS": "📌 Compras Diversas"
+    };
+
+    Object.entries(mapeamentoCategorias).forEach(([grupo, tags]) => {
+        const tagsAtivas = tags.filter(c => categorias.includes(c));
+        if(tagsAtivas.length === 0) return;
+
+        const chipsHtml = tagsAtivas.map(cat => {
+            const isActive = filtrosCategoriasAtivos.includes(cat);
+            return `<button class="chip-base ${isActive ? 'chip-ativo' : 'chip-inativo'} text-[10px] py-1 px-2" onclick="toggleFiltro('${cat}')">${cat}</button>`;
+        }).join('');
+
+        container.innerHTML += `
+            <div class="mb-2">
+                <div class="text-[9px] font-extrabold uppercase mb-1.5 opacity-60 ml-1 tracking-wider" style="color: var(--cor-acc);">${titulosGrupos[grupo] || grupo}</div>
+                <div class="flex flex-wrap gap-1.5">${chipsHtml}</div>
+            </div>
+        `;
     });
 }
 
@@ -730,56 +760,38 @@ async function criarNovaCategoria() {
     const grupo = document.getElementById('select-grupo-nova-categoria').value;
     
     if(val && !categorias.includes(val)) { 
-        categorias.push(val); 
-        filtrosCategoriasAtivos.push(val);
-        
+        categorias.push(val); filtrosCategoriasAtivos.push(val);
         if (!mapeamentoCategorias[grupo]) mapeamentoCategorias[grupo] = [];
         mapeamentoCategorias[grupo].push(val);
-
         document.getElementById('input-nova-categoria').value = ''; 
-        renderizarFiltrosChips(); 
-        await salvarConfiguracoesNaNuvem();
-        renderizarPainelGeral(); 
-        UI.showToast(`Tag vinculada ao grupo: ${grupo}`);
+        renderizarFiltrosChips(); await salvarConfiguracoesNaNuvem();
+        renderizarPainelGeral(); UI.showToast(`Tag vinculada ao grupo: ${grupo}`);
     }
 }
 
-function mudarTema(novoTema) { 
-    temaAtual = novoTema; localStorage.setItem('k_tema_app', novoTema); document.documentElement.setAttribute('data-theme', novoTema);
-    document.getElementById('meta-theme-color').setAttribute('content', novoTema === 'LIGHT' ? '#eceef1' : '#0b0c0e'); renderizarPainelGeral(); 
-}
-
-function limparFiltroDatas(initialLoad = false) {
-    document.getElementById('filtro-data-inicio').value = '';
-    document.getElementById('filtro-data-fim').value = '';
-    if (!initialLoad) renderizarPainelGeral();
+function formataValorVisivel(val, pref = "R$ ") {
+    if(!valoresVisiveis) return "R$ •••••";
+    return pref + val.toLocaleString('pt-BR', {minimumFractionDigits: 2});
 }
 
 function abrirModalLancamento(id = null) {
     const colSelect = document.getElementById('md-coluna'); colSelect.innerHTML = '';
     let hasBankColumns = false;
     colunasAtivas.forEach(c => { 
-        if(c !== "ENTRADAS") {
-            colSelect.innerHTML += `<option value="${c}">${c}</option>`; 
-            hasBankColumns = true;
-        }
+        if(c !== "ENTRADAS") { colSelect.innerHTML += `<option value="${c}">${c}</option>`; hasBankColumns = true; }
     });
-    if(!hasBankColumns) {
-        colSelect.innerHTML = `<option value="OUTROS">OUTROS (Crie uma conta)</option>`;
-    }
+    if(!hasBankColumns) colSelect.innerHTML = `<option value="OUTROS">OUTROS (Crie uma conta)</option>`;
 
     const membSelect = document.getElementById('md-membro'); membSelect.innerHTML = '';
     membrosFamilia.forEach(m => { membSelect.innerHTML += `<option value="${m}">${m}</option>`; });
+    
     const tituloTxt = document.getElementById('modal-titulo-texto'); document.getElementById('md-container-chips').classList.add('hidden');
     
     if(id) {
         editandoId = id; tituloTxt.innerText = "✏️ Editar Compra";
         const item = lancamentos.find(l => l.id === id); if(!item) return;
-        
-        document.getElementById('md-desc').value = item.descricao || ''; 
-        document.getElementById('md-nota').value = item.nota || '';
-        document.getElementById('md-valor').value = item.valor || ''; 
-        document.getElementById('md-tipo').value = item.tipo || 'SAÍDA'; 
+        document.getElementById('md-desc').value = item.descricao || ''; document.getElementById('md-nota').value = item.nota || '';
+        document.getElementById('md-valor').value = item.valor || ''; document.getElementById('md-tipo').value = item.tipo || 'SAÍDA'; 
         document.getElementById('md-coluna').value = item.coluna !== 'ENTRADAS' ? item.coluna : (colunasAtivas[1] || 'OUTROS'); 
         document.getElementById('md-membro').value = item.membro || membrosFamilia[0]; alternarOrigemDestinoModal(item.tipo); 
         document.getElementById('md-data').value = item.data || new Date().toISOString().split('T')[0];
@@ -799,49 +811,33 @@ function alternarOrigemDestinoModal(t) { document.getElementById('container-sele
 function toggleContainerCategoriasModal() { document.getElementById('md-container-chips').classList.toggle('hidden'); }
 
 function renderizarChipsModal() {
-    const cont = document.getElementById('md-container-chips'); cont.innerHTML = '';
-    
-    const titulosGrupos = {
-        "TECNOLOGIA": "💻 Infraestrutura & TI",
-        "CASA": "🏠 Contas de Casa",
-        "MOBILIDADE": "🚗 Logística & Mobilidade",
-        "ESTILO_DE_VIDA": "🍿 Estilo de Vida",
-        "INVESTIMENTOS": "📈 Investimentos",
-        "OUTROS": "📌 Outros"
-    };
+    const cont = document.getElementById('md-container-chips'); 
+    cont.innerHTML = '';
+    const titulosGrupos = { "TECNOLOGIA": "💻 Infra & TI", "CASA": "🏠 Casa", "MOBILIDADE": "🚗 Mobilidade", "ESTILO_DE_VIDA": "🍿 Estilo de Vida", "INVESTIMENTOS": "📈 Investimentos", "OUTROS": "📌 Outros" };
 
-    for (const [chaveGrupo, itensTags] of Object.entries(mapeamentoCategorias)) {
-        const tagsAtivasNoGrupo = itensTags.filter(cat => categorias.includes(cat));
-        if(tagsAtivasNoGrupo.length === 0) continue;
+    Object.entries(mapeamentoCategorias).forEach(([grupo, tags]) => {
+        const tagsAtivas = tags.filter(c => categorias.includes(c));
+        if(!tagsAtivas.length) return;
 
-        const blocoGrupoHtml = document.createElement('div');
-        blocoGrupoHtml.className = "w-full mb-3 border-b pb-2 last:border-none";
-        blocoGrupoHtml.style.borderColor = "var(--borda)";
-        blocoGrupoHtml.innerHTML = `<h5 class="text-[10px] uppercase font-extrabold tracking-wider mb-2 opacity-80" style="color: var(--cor-acc);">${titulosGrupos[chaveGrupo] || chaveGrupo}</h5>`;
+        const htmlBotoes = tagsAtivas.map(c => {
+            const isAtv = modalCategoriasSelecionadas.includes(c);
+            return `<button type="button" class="chip-base ${isAtv ? 'chip-ativo' : 'chip-inativo'}" onclick="toggleTagModal('${c}')">${c}</button>`;
+        }).join('');
 
-        const wrapperChips = document.createElement('div');
-        wrapperChips.className = "flex flex-wrap gap-2";
-
-        tagsAtivasNoGrupo.forEach(c => {
-            const atv = modalCategoriasSelecionadas.includes(c); const b = document.createElement('button'); b.type = "button";
-            b.className = `px-3 py-1.5 text-[11px] font-semibold rounded-lg border transition-all`;
-            b.style.backgroundColor = atv ? 'var(--cor-acc)' : 'transparent';
-            b.style.color = atv ? 'var(--cor-acc-txt)' : 'var(--texto-mutado)';
-            b.style.borderColor = atv ? 'var(--cor-acc)' : 'var(--borda)';
-            b.innerText = c; 
-            b.onclick = () => { 
-                if(modalCategoriasSelecionadas.includes(c)) modalCategoriasSelecionadas = modalCategoriasSelecionadas.filter(item => item !== c); 
-                else modalCategoriasSelecionadas.push(c); 
-                renderizarChipsModal(); 
-            }; 
-            wrapperChips.appendChild(b);
-        });
-        
-        blocoGrupoHtml.appendChild(wrapperChips);
-        cont.appendChild(blocoGrupoHtml);
-    }
+        cont.innerHTML += `
+            <div class="w-full mb-3 border-b pb-2 last:border-none" style="border-color: var(--borda);">
+                <h5 class="text-[10px] uppercase font-extrabold tracking-wider mb-2 opacity-80" style="color: var(--cor-acc);">${titulosGrupos[grupo] || grupo}</h5>
+                <div class="flex flex-wrap gap-2">${htmlBotoes}</div>
+            </div>`;
+    });
     document.getElementById('md-txt-qtd-categorias').innerText = modalCategoriasSelecionadas.length;
 }
+
+window.toggleTagModal = function(c) {
+    if(modalCategoriasSelecionadas.includes(c)) modalCategoriasSelecionadas = modalCategoriasSelecionadas.filter(item => item !== c); 
+    else modalCategoriasSelecionadas.push(c); 
+    renderizarChipsModal(); 
+};
 
 async function salvarLancamentoModal() {
     if(!usuarioAtual) return UI.showToast("Usuário não autenticado", "error");
@@ -867,18 +863,8 @@ async function salvarLancamentoModal() {
         await salvarConfiguracoesNaNuvem();
     }
 
-    const payload = {
-        user_id: usuarioAtual.id,
-        descricao: desc, 
-        nota: nota,
-        valor: valor,
-        tipo: tipo,
-        coluna: coluna,
-        categorias: [...modalCategoriasSelecionadas],
-        membro: membro,
-        data: dataTransacao,
-        mes: mesTransacao
-    };
+    // CORRIGIDO: Removida a propriedade 'categories' que causava erro 400 Bad Request
+    const payload = { user_id: usuarioAtual.id, descricao: desc, nota: nota, valor: valor, tipo: tipo, coluna: coluna, categorias: [...modalCategoriasSelecionadas], membro: membro, data: dataTransacao, mes: mesTransacao };
 
     if(editandoId) { 
         const { error } = await supabaseClient.from('lancamentos').update(payload).eq('id', editandoId);
@@ -897,9 +883,8 @@ async function removerLancamento(id) {
     if(confirm("Deseja apagar esta transação do banco de dados?")) { 
         UI.showToast("Apagando da nuvem...", "success");
         const { error } = await supabaseClient.from('lancamentos').delete().eq('id', id);
-        if (error) {
-            UI.showToast("Erro ao apagar", "error");
-        } else {
+        if (error) { UI.showToast("Erro ao apagar", "error"); } 
+        else {
             lancamentos = lancamentos.filter(l => l.id !== id);
             renderizarPainelGeral(); 
             UI.showToast("Transação apagada!");
@@ -912,13 +897,12 @@ async function adicionarColunaDespesa() {
     if(n && !colunasAtivas.includes(n.toUpperCase())) { 
         colunasAtivas.push(n.toUpperCase()); 
         await salvarConfiguracoesNaNuvem();
-        renderizarPainelGeral(); 
-        UI.showToast("Conta criada."); 
+        renderizarPainelGeral(); UI.showToast("Conta criada."); 
     } 
 }
 
 async function removerColuna(col) { 
-    if(confirm(`Deseja realmente excluir a conta/fatura "${col}"?`)) { 
+    if(confirm(`Deseja realmente excluir a conta "${col}" e todos os seus lançamentos?`)) { 
         await supabaseClient.from('lancamentos').delete().eq('coluna', col);
         colunasAtivas = colunasAtivas.filter(c => c !== col); 
         await salvarConfiguracoesNaNuvem();
@@ -928,32 +912,28 @@ async function removerColuna(col) {
 }
 
 async function ajustarOrdemColuna(col, direcao) {
-    const idx = colunasAtivas.indexOf(col);
-    if (idx === -1) return;
-    const novoIdx = idx + direcao;
-    if (novoIdx < 1 || novoIdx >= colunasAtivas.length) return;
-    
-    const temp = colunasAtivas[idx];
-    colunasAtivas[idx] = colunasAtivas[novoIdx];
-    colunasAtivas[novoIdx] = temp;
-    
-    await salvarConfiguracoesNaNuvem();
-    renderizarPainelGeral();
+    const idx = colunasAtivas.indexOf(col); if (idx === -1) return;
+    const novoIdx = idx + direcao; if (novoIdx < 1 || novoIdx >= colunasAtivas.length) return;
+    const temp = colunasAtivas[idx]; colunasAtivas[idx] = colunasAtivas[novoIdx]; colunasAtivas[novoIdx] = temp;
+    await salvarConfiguracoesNaNuvem(); renderizarPainelGeral();
+}
+
+async function zerarBaseDeDados() {
+    if(!confirm("⚠️ ATENÇÃO: Isso apagará TODOS os seus lançamentos da nuvem. Tem certeza?")) return;
+    UI.showToast("Limpando base de dados...", "success");
+    const { error } = await supabaseClient.from('lancamentos').delete().eq('user_id', usuarioAtual.id);
+    if (error) { UI.showToast("Erro ao limpar dados", "error"); } 
+    else { lancamentos = []; renderizarPainelGeral(); UI.showToast("Base de dados limpa!"); }
 }
 
 function abrirModalImportador() { 
     const colSelect = document.getElementById('imp-coluna'); 
     colSelect.innerHTML = '<option value="AUTO">🤖 Auto-Detectar Banco</option>'; 
-    colunasAtivas.forEach(c => { 
-        if(c !== "ENTRADAS") {
-            colSelect.innerHTML += `<option value="${c}">${c}</option>`; 
-        }
-    }); 
+    colunasAtivas.forEach(c => { if(c !== "ENTRADAS") colSelect.innerHTML += `<option value="${c}">${c}</option>`; }); 
     
     const memSelect = document.getElementById('imp-membro');
     if (memSelect) {
-        memSelect.innerHTML = '';
-        membrosFamilia.forEach(m => memSelect.innerHTML += `<option value="${m}">${m}</option>`);
+        memSelect.innerHTML = ''; membrosFamilia.forEach(m => memSelect.innerHTML += `<option value="${m}">${m}</option>`);
     }
 
     document.getElementById('imp-arquivo').value = ''; 
@@ -968,7 +948,9 @@ function detectarEProcessarArquivo(input) {
         UI.showToast("Analisando PDF...", "success");
         leitor.onload = async function() { 
             const doc = await pdfjsLib.getDocument({ data: new Uint8Array(this.result) }).promise; let txt = "";
-            for(let p=1; p<=doc.numPages; p++) txt += (await (await doc.getPage(p)).getTextContent()).items.map(i => i.str).join(" ") + " "; 
+            for(let p=1; p<=doc.numPages; p++) {
+                txt += (await (await doc.getPage(p)).getTextContent()).items.map(i => i.str).join(" ") + " "; 
+            }
             processarImportacao(txt, arq.name, processarTextoRegex); 
         }; 
         leitor.readAsArrayBuffer(arq);
@@ -986,120 +968,197 @@ async function processarImportacao(conteudo, nomeArq, funcaoExtrair) {
         let bancoConfig = detectarBancoArquivo(conteudo, nomeArq);
         if (bancoConfig) { 
             nomeColunaFinal = bancoConfig.nome.toUpperCase(); 
-            if (!colunasAtivas.includes(nomeColunaFinal)) { 
-                colunasAtivas.push(nomeColunaFinal); 
-                configuracaoAlterada = true;
-                UI.showToast(`Conta autodetectada!`); 
-            } 
+            if (!colunasAtivas.includes(nomeColunaFinal)) { colunasAtivas.push(nomeColunaFinal); configuracaoAlterada = true; UI.showToast(`Conta autodetectada!`); } 
         } else {
             nomeColunaFinal = colunasAtivas.find(c => c !== "ENTRADAS") || "OUTROS";
-            if (!colunasAtivas.includes(nomeColunaFinal)) {
-                colunasAtivas.push(nomeColunaFinal);
-                configuracaoAlterada = true;
-            }
+            if (!colunasAtivas.includes(nomeColunaFinal)) { colunasAtivas.push(nomeColunaFinal); configuracaoAlterada = true; }
             UI.showToast(`Banco não identificado. Usando ${nomeColunaFinal}.`);
         }
     }
 
-    if(configuracaoAlterada) {
-        await salvarConfiguracoesNaNuvem();
-    }
+    if(configuracaoAlterada) await salvarConfiguracoesNaNuvem();
 
     const arrayNovasTransacoes = funcaoExtrair(conteudo, nomeColunaFinal);
-    
     let membroSelecionado = document.getElementById('imp-membro').value;
-    const transacoesFinal = arrayNovasTransacoes.map(t => ({
-        ...t,
-        membro: membroSelecionado
-    }));
+    const transacoesFinal = arrayNovasTransacoes.map(t => ({ ...t, membro: membroSelecionado }));
     
     if(transacoesFinal.length > 0) { 
         UI.showToast(`Enviando ${transacoesFinal.length} transações para a nuvem...`, "success");
         const { error } = await supabaseClient.from('lancamentos').insert(transacoesFinal);
-        
-        if (error) {
-            UI.showToast("Erro ao importar para nuvem.", "error");
-        } else {
+        if (error) { 
+            console.error("Erro do Supabase:", error);
+            UI.showToast("Erro ao importar para nuvem.", "error"); 
+        } 
+        else { 
             fecharModalImportador(); 
-            await carregarConfiguracoesEDadosDoSupabase();
-            UI.showToast(`${transacoesFinal.length} transações importadas com sucesso!`);
+            await carregarConfiguracoesEDadosDoSupabase(); 
+            UI.showToast(`${transacoesFinal.length} transações importadas com sucesso!`); 
         }
-    } else { 
-        UI.showToast("Nenhuma transação válida lida.", "error"); 
-    }
+    } else { UI.showToast("Nenhuma transação válida lida.", "error"); }
 }
 
 function processarMotorOFX(texto, colDestino) {
-    let novosLancamentos = [];
-    const blocosTransacionais = texto.split(/<STMTTRN>/i);
+    let novosLancamentos = []; const blocosTransacionais = texto.split(/<STMTTRN>/i);
     for (let i = 1; i < blocosTransacionais.length; i++) {
         const bloco = blocosTransacionais[i];
         const valorMatch = bloco.match(/<TRNAMT>([\d.-]+)/i); let memoMatch = bloco.match(/<MEMO>([^<]+)/i) || bloco.match(/<NAME>([^<]+)/i);
-        
         const dataMatch = bloco.match(/<DTPOSTED>(\d{4})(\d{2})(\d{2})/i);
-        let dataStr = new Date().toISOString().split('T')[0];
-        if (dataMatch) dataStr = `${dataMatch[1]}-${dataMatch[2]}-${dataMatch[3]}`;
+        let dataStr = new Date().toISOString().split('T')[0]; if (dataMatch) dataStr = `${dataMatch[1]}-${dataMatch[2]}-${dataMatch[3]}`;
         let mesStr = dataStr.substring(0, 7);
         
         if (valorMatch && memoMatch) {
-            let val = parseFloat(valorMatch[1]);
-            let desc = memoMatch[1].trim(); if (isNaN(val) || val === 0) continue; let tipo = "SAÍDA";
+            let val = parseFloat(valorMatch[1]); let desc = memoMatch[1].trim(); if (isNaN(val) || val === 0) continue; let tipo = "SAÍDA";
             if (val < 0) { tipo = "SAÍDA"; val = Math.abs(val); } else { tipo = "ENTRADA"; }
-            let cat = "Outros";
-            for (const [k, p] of Object.entries(DICIONARIO_CATEGORIAS)) if (p.some(pal => desc.toLowerCase().includes(pal))) cat = k;
             
-            novosLancamentos.push({ user_id: usuarioAtual.id, descricao: UI.escapeHTML(desc), nota: "", valor: val, tipo, coluna: tipo === "ENTRADA" ? "ENTRADAS" : colDestino, categorias: [cat], membro: membrosFamilia.length > 0 ? membrosFamilia[0] : "Pessoal", mes: mesStr, data: dataStr });
+            let descLower = desc.toLowerCase();
+            
+            if (descLower.includes("pagamento") || descLower.includes("pagto") || descLower.includes("comprovante") || descLower.includes("liquidação") || descLower.includes("efetuado")) {
+                continue; 
+            }
+            
+            let cat = "Outros";
+            if (descLower.includes('parc') || descLower.includes('parcela') || /\d{1,2}\/\d{1,2}/.test(descLower)) {
+                cat = "Parcelamentos";
+            } else {
+                for (const [k, p] of Object.entries(DICIONARIO_CATEGORIAS)) {
+                    if (p.some(pal => descLower.includes(pal))) { cat = k; break; }
+                }
+            }
+
+            // CORRIGIDO: Removida a propriedade 'categories'
+            novosLancamentos.push({ user_id: usuarioAtual.id, descricao: UI.escapeHTML(desc), nota: "", valor: val, tipo, coluna: tipo === "ENTRADA" ? "ENTRADAS" : colDestino, categorias: [cat], membro: "Pessoal", mes: mesStr, data: dataStr });
         }
     } return novosLancamentos;
 }
 
 function processarTextoRegex(texto, colDestino) {
     let novosLancamentos = [];
-    const regex = /(\d{2}\/\d{2})\s+((?:(?!\d{2}\/\d{2}).)+?)(?:R\$\s*)?(-?\d{1,3}(?:\.\d{3})*,\d{2})/g; 
-    let m;
+    const textoLimpo = texto.replace(/\s+/g, ' ');
     const anoAtual = new Date().getFullYear();
-    
-    while((m = regex.exec(texto.replace(/\s+/g, ' '))) !== null) {
-        let desc = m[2].trim();
-        
-        let valorLimpo = m[3].replace(/\./g, '').replace(',', '.');
-        let val = parseFloat(valorLimpo); 
-        
-        if(Number.isNaN(val) || !Number.isFinite(val) || val === 0 || desc.length < 3) continue;
-        
-        let [dia, mes] = m[1].split('/');
-        let dataStr = `${anoAtual}-${mes}-${dia}`;
-        let mesStr = `${anoAtual}-${mes}`;
+    const mesAtual = new Date().toISOString().substring(0, 7);
+    const dataAtual = new Date().toISOString().split('T')[0];
 
-        let tipo = val < 0 ? "ENTRADA" : "SAÍDA"; 
-        val = Math.abs(val); 
+    // ==========================================
+    // CÉREBRO 1: HOLERITES & COMPROVANTES SALARIAIS
+    // ==========================================
+    if (textoLimpo.toUpperCase().includes("FOLHA MENSAL") || textoLimpo.toUpperCase().includes("RECIBO DE PAGAMENTO") || textoLimpo.toUpperCase().includes("SALÁRIO")) {
         
-        if (Number.isNaN(val)) continue;
+        const padroesHolerite = [
+            { regex: /DIAS NORMAIS\s+(?:\d{1,3}[:,]\d{2})\s+([\d.,]+)/i, desc: "Salário Base (Dias Normais)", tipo: "ENTRADA", cat: "Reserva & Investimentos" },
+            { regex: /HORAS EXTRAS.*?\s+(?:\d{1,3}[:,]\d{2})\s+([\d.,]+)/i, desc: "Horas Extras", tipo: "ENTRADA", cat: "Outros" },
+            { regex: /REFLEXO EXTRAS.*?\s+(?:\d{1,3}[:,]\d{2})\s+([\d.,]+)/i, desc: "Reflexo Horas Extras", tipo: "ENTRADA", cat: "Outros" },
+            { regex: /VALE ALIMENTACAO.*?\s+(?:\d{1,3}[:,]\d{2})\s+(?:[\d.,]+\s+)?([\d.,]+)/i, desc: "Vale Alimentação (Desconto)", tipo: "SAÍDA", cat: "Mercado & Essenciais" },
+            { regex: /N\.?S\.?S.*?\s+(?:\d{1,3}[:,]\d{2})\s+(?:[\d.,]+\s+)?([\d.,]+)/i, desc: "INSS", tipo: "SAÍDA", cat: "Impostos & Taxas" },
+            { regex: /R\.?R\.?F.*?\s+(?:\d{1,3}[:,]\d{2})\s+(?:[\d.,]+\s+)?([\d.,]+)/i, desc: "IRRF", tipo: "SAÍDA", cat: "Impostos & Taxas" }
+        ];
+
+        padroesHolerite.forEach(p => {
+            let m = p.regex.exec(textoLimpo);
+            if (m && m[1]) {
+                let valStr = m[1].replace(/\./g, '').replace(',', '.');
+                let val = parseFloat(valStr);
+                
+                if (!Number.isNaN(val) && val > 0) {
+                    // CORRIGIDO: Removida a propriedade 'categories'
+                    novosLancamentos.push({
+                        user_id: usuarioAtual.id,
+                        descricao: UI.escapeHTML(p.desc),
+                        nota: "Importado via Holerite",
+                        valor: Number(val.toFixed(2)),
+                        tipo: p.tipo,
+                        coluna: p.tipo === "ENTRADA" ? "ENTRADAS" : colDestino,
+                        categorias: [p.cat],
+                        membro: "Pessoal",
+                        mes: mesAtual,
+                        data: dataAtual
+                    });
+                }
+            }
+        });
+        
+        if (novosLancamentos.length > 0) return novosLancamentos;
+    }
+
+    // ==========================================
+    // CÉREBRO 2: FATURA NUBANK (Ex: 10 MAI NOME 50,00)
+    // ==========================================
+    const regexNubank = /(\d{2}\s+[A-Z]{3})\s+(.+?)\s+(-?\d{1,3}(?:\.\d{3})*[.,]\d{2})(?=\s+\d{2}\s+[A-Z]{3}|\s+Total|\s*$)/gi;
+    const mesesAbrev = { "JAN": "01", "FEV": "02", "MAR": "03", "ABR": "04", "MAI": "05", "JUN": "06", "JUL": "07", "AGO": "08", "SET": "09", "OUT": "10", "NOV": "11", "DEZ": "12" };
+    let mN;
+    
+    while ((mN = regexNubank.exec(textoLimpo)) !== null) {
+        let dataOriginal = mN[1];
+        let desc = mN[2].trim();
+        let valorOriginal = mN[3].trim();
+        
+        let centavos = valorOriginal.slice(-2);
+        let inteiros = valorOriginal.slice(0, -3).replace(/[.,]/g, '');
+        let val = parseFloat(inteiros + '.' + centavos);
+        
+        if (Number.isNaN(val) || val === 0 || desc.length < 3 || desc.toUpperCase().includes("TOTAL")) continue;
+        
+        let descLower = desc.toLowerCase();
+        if (descLower.includes("pagamento") || descLower.includes("pagto") || descLower.includes("comprovante")) continue;
+
+        let partesData = dataOriginal.split(/\s+/);
+        let dia = partesData[0].padStart(2, '0');
+        let mesNum = mesesAbrev[partesData[1].toUpperCase()] || "01";
+
+        let dataStr = `${anoAtual}-${mesNum}-${dia}`;
+        let mesStr = `${anoAtual}-${mesNum}`;
+        let tipo = val < 0 ? "ENTRADA" : "SAÍDA";
+        val = Math.abs(val);
 
         let cat = "Outros";
-        for (const [k, p] of Object.entries(DICIONARIO_CATEGORIAS)) {
-            if (p.some(pal => desc.toLowerCase().includes(pal))) cat = k;
-        }
-        
-        novosLancamentos.push({ 
-            user_id: usuarioAtual.id, 
-            descricao: UI.escapeHTML(desc), 
-            nota: "", 
-            valor: Number(val.toFixed(2)), 
-            tipo: tipo, 
-            coluna: tipo === "ENTRADA" ? "ENTRADAS" : colDestino, 
-            categorias: [cat], 
-            membro: (typeof membrosFamilia !== 'undefined' && membrosFamilia.length > 0) ? membrosFamilia[0] : "Pessoal", 
-            mes: mesStr, 
-            data: dataStr 
-        }); 
-    } 
-    return novosLancamentos;
-}
+        if (descLower.includes('parc') || descLower.includes('parcela') || /\d{1,2}\/\d{1,2}/.test(descLower)) cat = "Parcelamentos";
+        else { for (const [k, p] of Object.entries(DICIONARIO_CATEGORIAS)) { if (p.some(pal => descLower.includes(pal))) { cat = k; break; } } }
 
-function formataValorVisivel(val, pref = "R$ ") {
-    if(!valoresVisiveis) return "R$ •••••";
-    return pref + val.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+        // CORRIGIDO: Removida a propriedade 'categories'
+        novosLancamentos.push({
+            user_id: usuarioAtual.id, descricao: UI.escapeHTML(desc), nota: "", valor: Number(val.toFixed(2)), tipo: tipo, coluna: tipo === "ENTRADA" ? "ENTRADAS" : colDestino, categorias: [cat], membro: "Pessoal", mes: mesStr, data: dataStr
+        }); 
+    }
+    
+    if (novosLancamentos.length > 0) return novosLancamentos;
+
+    // ==========================================
+    // CÉREBRO 3: FATURA BRADESCO / ITAÚ / BB (Ex: 10/04 NOME 50,00)
+    // ==========================================
+    const regexFatura = /(\d{2}\/\d{2})\s+(.+?)\s+(-?\d{1,3}(?:\.\d{3})*[.,]\d{2})(?=\s+\d{2}\/\d{2}|\s+Total|\s+Encargos|\s*$)/gi;
+    let m;
+    
+    while ((m = regexFatura.exec(textoLimpo)) !== null) {
+        let dataOriginal = m[1];
+        let desc = m[2].trim();
+        let valorOriginal = m[3].trim();
+        
+        let centavos = valorOriginal.slice(-2);
+        let inteiros = valorOriginal.slice(0, -3).replace(/[.,]/g, '');
+        let val = parseFloat(inteiros + '.' + centavos);
+        
+        if (Number.isNaN(val) || val === 0 || desc.length < 3 || desc.toUpperCase().includes("TOTAL") || desc.toUpperCase().includes("SALDO ANTERIOR")) continue;
+        
+        let descLower = desc.toLowerCase();
+        if (descLower.includes("pagamento") || descLower.includes("pagto") || descLower.includes("comprovante")) continue;
+
+        let [dia, mes] = dataOriginal.split('/');
+        let dataStr = `${anoAtual}-${mes}-${dia}`;
+        let mesStr = `${anoAtual}-${mes}`;
+        
+        let tipo = val < 0 ? "ENTRADA" : "SAÍDA";
+        val = Math.abs(val);
+        
+        let cat = "Outros";
+        if (descLower.includes('parc') || descLower.includes('parcela') || /\d{1,2}\/\d{1,2}/.test(descLower)) cat = "Parcelamentos";
+        else { for (const [k, p] of Object.entries(DICIONARIO_CATEGORIAS)) { if (p.some(pal => descLower.includes(pal))) { cat = k; break; } } }
+
+        // CORRIGIDO: Removida a propriedade 'categories'
+        novosLancamentos.push({
+            user_id: usuarioAtual.id, descricao: UI.escapeHTML(desc), nota: "", valor: Number(val.toFixed(2)), tipo: tipo, coluna: tipo === "ENTRADA" ? "ENTRADAS" : colDestino, categorias: [cat], membro: "Pessoal", mes: mesStr, data: dataStr
+        }); 
+    }
+    
+    return novosLancamentos;
 }
 
 function renderizarPainelGeral() {
@@ -1109,20 +1168,13 @@ function renderizarPainelGeral() {
     const filtroDados = lancamentos.filter(l => {
         const membroOk = (membroFiltroAtual === "TODOS" || l.membro === membroFiltroAtual);
         let dataOk = true;
-        
-        if (dataIn && dataFim) {
-            dataOk = l.data >= dataIn && l.data <= dataFim;
-        } else if (dataIn) {
-            dataOk = l.data >= dataIn;
-        } else if (dataFim) {
-            dataOk = l.data <= dataFim;
-        }
-        
+        if (dataIn && dataFim) dataOk = l.data >= dataIn && l.data <= dataFim;
+        else if (dataIn) dataOk = l.data >= dataIn;
+        else if (dataFim) dataOk = l.data <= dataFim;
         return membroOk && dataOk;
     });
 
     let tEnt = 0, tSai = 0; filtroDados.forEach(l => l.tipo === "ENTRADA" ? tEnt += l.valor : tSai += l.valor);
-    
     document.getElementById('lbl-entradas').innerText = formataValorVisivel(tEnt);
     document.getElementById('lbl-saidas').innerText = formataValorVisivel(tSai);
     document.getElementById('lbl-saldo').innerText = formataValorVisivel(tEnt - tSai);
@@ -1131,119 +1183,100 @@ function renderizarPainelGeral() {
 }
 
 function renderizarKanban(dados) {
-    const row = document.getElementById('kanban-board-row'); row.innerHTML = '';
+    const row = document.getElementById('kanban-board-row'); 
+    if (!row) return;
+    row.innerHTML = '';
     
     colunasAtivas.forEach((col, idx) => {
-        let bConfig = null; for (const k in BANCOS_BRANDING) { if (BANCOS_BRANDING[k].nome.toUpperCase() === col.toUpperCase()) bConfig = BANCOS_BRANDING[k]; }
-        const possuiBranding = !!bConfig; const corBanco = possuiBranding ? bConfig.cor : 'transparent'; const bgColuna = possuiBranding ? `${corBanco}14` : 'var(--card-bg)'; const corLinhaTop = possuiBranding ? corBanco : 'var(--borda)'; const iconeExibicao = possuiBranding ? `${bConfig.icon} ` : (col === "ENTRADAS" ? '🟢 ' : '🏦 ');
+        const nomeChave = col.trim().toUpperCase();
+        let bConfig = null;
         
-        const b = document.createElement('div');
-        b.className = "mobile-card min-w-[280px] w-72 flex flex-col shrink-0 overflow-hidden transition-all duration-300";
-        b.style.backgroundColor = bgColuna; b.style.borderColor = possuiBranding ? `${corBanco}35` : 'var(--borda)';
+        for (const k in BANCOS_BRANDING) {
+            if (k === nomeChave || BANCOS_BRANDING[k].keywords.includes(nomeChave)) {
+                bConfig = BANCOS_BRANDING[k]; break;
+            }
+        }
         
-        const idConteudoCol = "kanban-col-" + col.replace(/\s+/g, '-');
+        const isBrand = !!bConfig;
+        const cor = isBrand ? bConfig.cor : '#64748b';
+        const icon = isBrand ? `${bConfig.icon} ` : (nomeChave === "ENTRADAS" ? '🟢 ' : '🏦 ');
         
-        b.innerHTML = `
-            <div class="px-4 py-3 font-bold text-sm border-b flex items-center justify-between" style="border-top: 4px solid ${corLinhaTop}; border-bottom-color: ${possuiBranding ? corBanco + '25' : 'var(--borda)'}; background: ${possuiBranding ? corBanco + '18' : 'transparent'}; color: var(--texto-principal);">
-                <div class="flex items-center gap-2"><span>${iconeExibicao}</span><span class="tracking-wide">${col}</span></div>
-                <div class="flex items-center gap-1">
-                    ${col !== "ENTRADAS" && idx > 1 ? `<button onclick="ajustarOrdemColuna('${col}', -1)" class="opacity-50 hover:opacity-100 text-xs px-1 py-0.5 rounded bg-gray-500/10 hover:bg-gray-500/20 transition" title="Mover para Esquerda">◀️</button>` : ''}
-                    ${col !== "ENTRADAS" && idx < colunasAtivas.length - 1 ? `<button onclick="ajustarOrdemColuna('${col}', 1)" class="opacity-50 hover:opacity-100 text-xs px-1 py-0.5 rounded bg-gray-500/10 hover:bg-gray-500/20 transition" title="Mover para Direita">▶️</button>` : ''}
-                    <button onclick="toggleSecao('${idConteudoCol}', this)" class="opacity-50 hover:opacity-100 text-xs px-2 py-1 rounded transition" style="background-color: var(--badge-bg); color: var(--texto-principal);">➖</button>
-                    ${col !== "ENTRADAS" ? `<button onclick="removerColuna('${col}')" class="opacity-50 hover:opacity-100 text-xs px-2 py-1 rounded transition text-rose-500 hover:bg-rose-500/20" title="Excluir Fatura">🗑️</button>` : ''}
-                </div>
-            </div>
-            <div id="${idConteudoCol}" class="p-4 flex flex-col gap-3 max-h-[420px] overflow-y-auto kanban-scrollbar container-cards-coluna transition-all"></div>
-        `;
-        
-        const cont = b.querySelector('.container-cards-coluna');
-        const transacoesOrdenadas = dados.filter(d => d.coluna === col).sort((a, b) => new Date(b.data) - new Date(a.data));
-        
-        transacoesOrdenadas.forEach(item => {
-            const c = document.createElement('div'); c.className = "p-3 rounded-xl border relative shadow-sm hover:shadow-md transition-all duration-200 group";
-            let bgCard = 'var(--card-bg)'; let corTextoCard = 'var(--texto-principal)'; let bordaCard = 'var(--borda)';
-            if (possuiBranding) { bgCard = corBanco; corTextoCard = obterCorTextoContraste(corBanco); bordaCard = 'transparent'; }
-            c.style.backgroundColor = bgCard; c.style.borderColor = bordaCard; c.style.color = corTextoCard;
-            
-            const tagsArray = Array.isArray(item.categorias) ? item.categorias : [item.categorias || "Outros"];
-            const tagBg = corTextoCard === '#ffffff' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.06)';
-            const tagsHtml = tagsArray.map(cat => `<span class="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded whitespace-nowrap" style="background-color: ${tagBg}; color: ${corTextoCard};">${cat}</span>`).join(' ');
-            const notaHtml = item.nota ? `<div class="text-xs font-semibold mt-1 flex items-center gap-1" style="color: ${corTextoCard === '#ffffff' ? '#ffe4e6' : '#b91c1c'};">📦 ${item.nota}</div>` : '';
-            let classeValor = item.tipo === 'ENTRADA' ? 'valor-positivo' : 'valor-negativo'; let estiloValor = '';
-            if (possuiBranding && corTextoCard === '#ffffff') { estiloValor = `color: ${item.tipo === 'ENTRADA' ? '#A7F3D0' : '#FECACA'};`; classeValor = ''; }
-            
-            const textoValorCard = valoresVisiveis ? `R$ ${item.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})}` : `R$ •••••`;
-            const dataFormatada = item.data ? item.data.split('-').reverse().join('/') : '';
-            const tagDataVisivel = dataFormatada ? `<span class="text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded ml-1" style="background-color: ${tagBg}; color: ${corTextoCard};" title="Data da Compra">📅 ${dataFormatada}</span>` : '';
+        const styleVars = `--brand-cor: ${cor}; --brand-bg: ${isBrand ? cor+'14' : 'var(--card-bg)'}; --brand-header: ${isBrand ? cor+'18' : 'transparent'}; --brand-border: ${isBrand ? cor+'35' : 'var(--borda)'};`;
 
-            c.innerHTML = `
-                <div class="flex flex-col text-xs font-semibold mb-1"><span class="truncate pr-2 block font-medium" style="color: ${corTextoCard};" title="${item.descricao}">${item.descricao}</span>${notaHtml}</div>
-                <div class="font-extrabold text-sm ${classeValor}" style="${estiloValor}">${textoValorCard}</div>
+        const transacoesDaColuna = dados.filter(d => d.coluna.trim().toUpperCase() === nomeChave).sort((a, b) => new Date(b.data) - new Date(a.data));
+        const htmlCartoes = transacoesDaColuna.map(item => {
+            const bgCard = isBrand ? cor : 'var(--card-bg)';
+            const txtCor = isBrand ? obterCorTextoContraste(cor) : 'var(--texto-principal)';
+            const tagBg = txtCor === '#ffffff' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.06)';
+            const tagsArr = Array.isArray(item.categorias) ? item.categorias : [item.categorias || "Outros"];
+            const tagsHtml = tagsArr.map(cat => `<span class="kanban-tag" style="background:${tagBg}; color:${txtCor}">${cat}</span>`).join('');
+            const valVis = valoresVisiveis ? `R$ ${item.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})}` : `R$ •••••`;
+            const dataFmt = item.data ? item.data.split('-').reverse().join('/') : '';
+
+            return `
+            <div class="kanban-card-base border group" style="background:${bgCard}; border-color:${isBrand?'transparent':'var(--borda)'}; color:${txtCor}">
+                <div class="flex flex-col text-xs font-semibold mb-1">
+                    <span class="truncate pr-2 block font-medium" title="${item.descricao}">${item.descricao}</span>
+                    ${item.nota ? `<div class="text-[10px] mt-1 flex items-center gap-1 opacity-80">📦 ${item.nota}</div>` : ''}
+                </div>
+                <div class="font-extrabold text-sm ${!isBrand && item.tipo === 'ENTRADA' ? 'valor-positivo' : (!isBrand ? 'valor-negativo' : '')}" style="${isBrand && txtCor === '#ffffff' ? `color: ${item.tipo === 'ENTRADA' ? '#A7F3D0' : '#FECACA'};` : ''}">${valVis}</div>
                 <div class="mt-2 flex flex-wrap gap-1 items-center">${tagsHtml}</div>
-                <div class="mt-2 pt-2 border-t flex justify-between items-center gap-1" style="border-color: ${possuiBranding ? 'rgba(255,255,255,0.18)' : 'var(--borda)'};">
+                <div class="mt-2 pt-2 border-t flex justify-between items-center gap-1" style="border-color:${isBrand ? 'rgba(255,255,255,0.18)' : 'var(--borda)'}">
                     <div class="flex items-center">
-                        <span class="text-[9px] font-bold tracking-wide uppercase px-1.5 py-0.5 rounded truncate max-w-[80px]" style="background-color: ${tagBg}; color: ${corTextoCard};">${item.membro || 'Pessoal'}</span>
-                        ${tagDataVisivel}
+                        <span class="kanban-tag" style="background:${tagBg}; color:${txtCor}">${item.membro || 'Pessoal'}</span>
+                        ${dataFmt ? `<span class="kanban-tag ml-1" style="background:${tagBg}; color:${txtCor}">📅 ${dataFmt}</span>` : ''}
                     </div>
                     <div class="flex gap-2 ml-auto">
-                        <button onclick="abrirModalLancamento('${item.id}')" class="text-[10px] font-bold opacity-80 hover:opacity-100" style="color: ${corTextoCard === '#ffffff' ? '#93C5FD' : '#1D4ED8'};">Editar</button>
-                        <button onclick="removerLancamento('${item.id}')" class="text-[10px] opacity-0 group-hover:opacity-100 transition-opacity" style="color: ${corTextoCard === '#ffffff' ? '#FCA5A5' : '#DC2626'};">Apagar</button>
+                        <button onclick="abrirModalLancamento('${item.id}')" class="text-[10px] font-bold opacity-80 hover:opacity-100">✏️</button>
+                        <button onclick="removerLancamento('${item.id}')" class="text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">🗑️</button>
                     </div>
                 </div>
-            `;
-            cont.appendChild(c);
-        }); row.appendChild(b);
+            </div>`;
+        }).join('');
+
+        row.innerHTML += `
+            <div class="mobile-card min-w-[280px] w-72 flex flex-col shrink-0 overflow-hidden transition-all duration-300" style="${styleVars} background-color: var(--brand-bg); border-color: var(--brand-border);">
+                <div class="px-4 py-3 font-bold text-sm border-b flex items-center justify-between" style="border-top: 4px solid var(--brand-cor); background: var(--brand-header); border-bottom-color: var(--brand-border); color: var(--texto-principal);">
+                    <div class="flex items-center gap-2"><span>${icon}</span><span class="tracking-wide">${col}</span></div>
+                    <div class="flex items-center gap-1">
+                        ${nomeChave !== "ENTRADAS" && idx > 1 ? `<button onclick="ajustarOrdemColuna('${col}', -1)" class="opacity-50 hover:opacity-100 text-xs px-1 py-0.5 rounded transition bg-gray-500/10">◀️</button>` : ''}
+                        ${nomeChave !== "ENTRADAS" && idx < colunasAtivas.length - 1 ? `<button onclick="ajustarOrdemColuna('${col}', 1)" class="opacity-50 hover:opacity-100 text-xs px-1 py-0.5 rounded transition bg-gray-500/10">▶️</button>` : ''}
+                        <button onclick="toggleSecao('col-${col.replace(/\s+/g, '-')}', this)" class="opacity-50 hover:opacity-100 text-xs px-2 py-1 rounded transition" style="background-color: var(--badge-bg); color: var(--texto-principal);">➖</button>
+                        ${nomeChave !== "ENTRADAS" ? `<button onclick="removerColuna('${col}')" class="opacity-50 hover:opacity-100 text-xs px-2 py-1 rounded transition text-rose-500 hover:bg-rose-500/20">🗑️</button>` : ''}
+                    </div>
+                </div>
+                <div id="col-${col.replace(/\s+/g, '-')}" class="p-4 flex flex-col gap-3 max-h-[420px] overflow-y-auto kanban-scrollbar">${htmlCartoes}</div>
+            </div>`;
     });
 }
 
 function processarGraficos(dados) {
-    const mapa = {}; 
-    let tot = 0;
+    const mapa = {}; let tot = 0;
     
     dados.filter(l => l.tipo === "SAÍDA").forEach(i => {
-        const tags = Array.isArray(i.categorias) ? i.categorias : [i.categorias || "Outros"];
+        let tags = Array.isArray(i.categorias) ? i.categorias : [i.categorias || "Outros"];
+        tags = tags.map(t => categorias.includes(t) ? t : "Outros");
+
         const tagsAtivas = tags.filter(c => filtrosCategoriasAtivos.includes(c));
         
         if (tagsAtivas.length > 0) {
-            tot += i.valor;
-            const valorFracionado = i.valor / tagsAtivas.length;
-            tagsAtivas.forEach(c => { 
-                mapa[c] = (mapa[c] || 0) + valorFracionado; 
-            });
+            tot += i.valor; const valorFracionado = i.valor / tagsAtivas.length;
+            tagsAtivas.forEach(c => { mapa[c] = (mapa[c] || 0) + valorFracionado; });
         }
     });
 
     document.getElementById('lbl-total-grafico').innerText = formataValorVisivel(tot);
-
     if(chartPizzaInstance) chartPizzaInstance.destroy();
     const corTextoLabel = temaAtual === 'LIGHT' ? '#1e293b' : '#f8fafc';
 
     chartPizzaInstance = new Chart(document.getElementById('meuGraficoPizza').getContext('2d'), { 
-        type: 'pie', 
-        data: { 
-            labels: Object.keys(mapa), 
-            datasets: [{ 
-                data: Object.values(mapa), 
-                backgroundColor: coresGraficos[temaAtual], 
-                borderWidth: 2, 
-                borderColor: temaAtual === 'LIGHT' ? '#ffffff' : '#1e293b'
-            }] 
-        }, 
+        type: 'pie', data: { labels: Object.keys(mapa), datasets: [{ data: Object.values(mapa), backgroundColor: coresGraficos[temaAtual], borderWidth: 2, borderColor: temaAtual === 'LIGHT' ? '#ffffff' : '#1e293b' }] }, 
         options: { 
-            responsive: true, 
-            maintainAspectRatio: false, 
-            layout: { padding: { left: 40, right: 40, top: 40, bottom: 40 } },
+            responsive: true, maintainAspectRatio: false, layout: { padding: { left: 40, right: 40, top: 40, bottom: 40 } },
             plugins: { 
                 legend: { display: false }, 
                 datalabels: { 
-                    display: true,
-                    color: corTextoLabel,
-                    font: { weight: '800', size: 10 },
-                    textAlign: 'center',
-                    anchor: 'end',
-                    align: 'end',
-                    offset: 8,
-                    clip: false,
+                    display: true, color: corTextoLabel, font: { weight: '800', size: 10 }, textAlign: 'center', anchor: 'end', align: 'end', offset: 8, clip: false,
                     formatter: (value, ctx) => {
                         let label = ctx.chart.data.labels[ctx.dataIndex];
                         let percentage = tot > 0 ? ((value / tot) * 100).toFixed(1) + '%' : '0%';
@@ -1267,64 +1300,12 @@ function processarGraficos(dados) {
     const bgLinhaLrb = temaAtual === 'DARK' ? 'rgba(57, 255, 20, 0.1)' : 'rgba(0, 180, 216, 0.1)';
 
     chartLinhaInstance = new Chart(document.getElementById('graficoProgressaoLinha').getContext('2d'), { 
-        type: 'line', 
-        data: { 
-            labels: labelsLinha, 
-            datasets: [{ 
-                data: linha, 
-                borderColor: corLinhaLrb, 
-                backgroundColor: bgLinhaLrb, 
-                borderWidth: 3, 
-                fill: true, 
-                tension: 0.4 
-            }] 
-        }, 
+        type: 'line', data: { labels: labelsLinha, datasets: [{ data: linha, borderColor: corLinhaLrb, backgroundColor: bgLinhaLrb, borderWidth: 3, fill: true, tension: 0.4 }] }, 
         options: { 
-            responsive: true, 
-            maintainAspectRatio: false, 
-            scales: { 
-                y: { display: false }, 
-                x: { 
-                    grid: { display: false },
-                    ticks: { color: temaAtual === 'DARK' ? '#9ca3af' : '#4b5563', font: { weight: 'bold' } }
-                } 
-            }, 
-            plugins: { 
-                legend: { display: false }, 
-                datalabels: { 
-                    align: 'top', 
-                    color: corTextoLabel,
-                    font: { weight: 'bold', size: 11 }, 
-                    formatter: v => valoresVisiveis ? 'R$ ' + v.toLocaleString('pt-BR') : 'R$ •••••' 
-                } 
-            } 
+            responsive: true, maintainAspectRatio: false, scales: { y: { display: false }, x: { grid: { display: false }, ticks: { color: temaAtual === 'DARK' ? '#9ca3af' : '#4b5563', font: { weight: 'bold' } } } }, 
+            plugins: { legend: { display: false }, datalabels: { align: 'top', color: corTextoLabel, font: { weight: 'bold', size: 11 }, formatter: v => valoresVisiveis ? 'R$ ' + v.toLocaleString('pt-BR') : 'R$ •••••' } } 
         } 
     });
-}
-
-// ==============================================================================
-// FUNÇÕES NOVAS (INJETADAS) - ZERAR BASE E REATIVIDADE
-// ==============================================================================
-async function zerarBaseDeDados() {
-    if(!confirm("⚠️ ATENÇÃO: Isso apagará TODOS os seus lançamentos da nuvem. Tem certeza?")) return;
-    UI.showToast("Limpando base de dados...", "success");
-    const { error } = await supabaseClient.from('lancamentos').delete().eq('user_id', usuarioAtual.id);
-    if (error) {
-        UI.showToast("Erro ao limpar dados", "error");
-    } else {
-        lancamentos = []; 
-        renderizarPainelGeral(); 
-        UI.showToast("Base de dados limpa!");
-    }
-}
-
-function criarNovoMembroViaModal() {
-    const nome = prompt("Nome do novo membro:");
-    if(nome && !membrosFamilia.includes(nome)) {
-        membrosFamilia.push(nome);
-        salvarConfiguracoesNaNuvem();
-        abrirModalImportador(); 
-    }
 }
 </script>
 </body>
